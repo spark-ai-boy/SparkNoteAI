@@ -5,6 +5,7 @@
   "buildDependenciesFromSource": false,
   "npmRebuild": false,
   "asar": true,
+  "publish": null,
   "extraMetadata": {
     "main": "electron/main.js"
   },
