@@ -1,0 +1,41 @@
+# SparkNoteAI 根目录 .dockerignore
+
+# 依赖
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+
+# Git
+.git/
+.gitignore
+
+# Docker
+docker/
+Dockerfile
+
+# 文档
+*.md
+docs/
+.github/
+.claude/
+CLAUDE.md
+VERSION
+
+# 环境文件
+.env
+.env.local
+.env.production
+
+# 构建产物
+dist/
+web-build/
+release/
+
+# 后端目录（前端构建不需要）
+apps/backend/
+
+# 前端构建时不需要这些
+apps/frontend/electron/
+apps/frontend/node_modules/

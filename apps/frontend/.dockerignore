@@ -1,0 +1,43 @@
+# 前端 .dockerignore
+
+# 依赖
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# 测试
+coverage/
+*.log
+
+# 构建产物（重新构建）
+dist/
+web-build/
+
+# Docker
+Dockerfile
+docker-compose*.yml
+
+# 文档
+*.md
+docs/
+
+# 环境文件
+.env
+.env.local
+.env.production
+
+# Expo
+.expo/
+.expo-shared/
+*.jks
+*.p8
+*.pem

@@ -1,0 +1,34 @@
+{
+  "name": "sparknoteai-macos",
+  "version": "1.0.0",
+  "description": "SparkNoteAI macOS App",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --mac",
+    "build:mac": "electron-builder --mac",
+    "pack": "electron-builder --dir"
+  },
+  "author": "sparknoteai",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^36.3.2",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.sparknoteai.app",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": ["dmg", "zip"],
+      "icon": "build/icon.icns"
+    },
+    "files": [
+      "main.js",
+      "package.json",
+      "dist/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    }
+  }
+}

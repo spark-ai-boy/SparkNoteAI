@@ -1,0 +1,51 @@
+{
+  "name": "sparknote-ai",
+  "version": "1.1.0",
+  "private": true,
+  "description": "SparkNoteAI - 知识整理与管理系统",
+  "main": "apps/frontend/electron/main.js",
+  "scripts": {
+    "dev:backend": "cd apps/backend && .venv/bin/python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000",
+    "dev:frontend": "cd apps/frontend && npm start",
+
+    "build:frontend": "cd apps/frontend && npx expo export",
+
+    "docker:dev:up": "cd docker && docker-compose -f docker-compose.dev.yml up -d",
+    "docker:dev:down": "cd docker && docker-compose -f docker-compose.dev.yml down",
+    "docker:dev:logs": "cd docker && docker-compose -f docker-compose.dev.yml logs -f",
+    "docker:prod:up": "cd docker && docker-compose -f docker-compose.prod.yml up -d",
+    "docker:prod:down": "cd docker && docker-compose -f docker-compose.prod.yml down",
+    "docker:prod:logs": "cd docker && docker-compose -f docker-compose.prod.yml logs -f",
+    "docker:build": "./scripts/build.sh build",
+    "docker:push": "./scripts/build.sh push",
+    "docker:deploy": "./scripts/build.sh deploy",
+    "docker:login": "./scripts/build.sh login",
+
+    "test:backend": "cd apps/backend && pytest",
+    "test:frontend": "cd apps/frontend && npm test",
+    "lint": "npm run lint:frontend",
+    "lint:frontend": "cd apps/frontend && npx tsc --noEmit",
+
+    "install:all": "npm install && cd apps/frontend && npm install && cd ../../packages/shared && npm install && npm run build",
+
+    "electron:dev": "concurrently \"cd apps/frontend && npm start\" \"wait-on http://localhost:8081 && sleep 2 && electron .\"",
+    "electron:build:mac": "npm run build:frontend && cd apps/frontend && node fix-electron-paths.js && electron-builder --mac",
+    "electron:build:win": "npm run build:frontend && cd apps/frontend && node fix-electron-paths.js && electron-builder --win",
+    "electron:build:dir": "npm run build:frontend && cd apps/frontend && node fix-electron-paths.js && electron-builder --dir",
+    "electron:start": "electron ."
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "electron": "^36.3.2",
+    "electron-builder": "^26.0.12",
+    "patch-package": "^8.0.1",
+    "wait-on": "^8.0.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "workspaces": [
+    "apps/frontend",
+    "packages/shared"
+  ]
+}
