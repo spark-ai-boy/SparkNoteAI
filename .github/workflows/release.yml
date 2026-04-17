@@ -133,6 +133,7 @@ jobs:
 
       - name: Build Electron (macOS ${{ matrix.label }})
         run: |
+          ulimit -n 65536
           cd apps/frontend
           npx electron-builder --mac --publish never
         env:
