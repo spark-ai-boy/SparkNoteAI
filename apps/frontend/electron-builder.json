@@ -1,0 +1,66 @@
+{
+  "appId": "com.sparknoteai.app",
+  "productName": "SparkNoteAI",
+  "electronVersion": "36.3.2",
+  "buildDependenciesFromSource": false,
+  "npmRebuild": false,
+  "asar": false,
+  "extraMetadata": {
+    "main": "electron/main.js"
+  },
+  "win": {
+    "target": [
+      "nsis",
+      "portable"
+    ],
+    "icon": "assets/icon.png"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "installerIcon": "assets/icon.png",
+    "uninstallerIcon": "assets/icon.png",
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  },
+  "mac": {
+    "category": "public.app-category.productivity",
+    "target": [
+      "dmg",
+      "zip"
+    ],
+    "icon": "assets/icon.png",
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false,
+    "entitlements": "electron/entitlements.mac.plist",
+    "entitlementsInherit": "electron/entitlements.mac.plist"
+  },
+  "dmg": {
+    "title": "SparkNoteAI",
+    "contents": [
+      {
+        "x": 130,
+        "y": 220
+      },
+      {
+        "x": 410,
+        "y": 220,
+        "type": "link",
+        "path": "/Applications"
+      }
+    ]
+  },
+  "files": [
+    "electron/**/*",
+    "dist/**/*"
+  ],
+  "directories": {
+    "output": "../../release"
+  },
+  "extraResources": [
+    {
+      "from": "dist",
+      "to": "www"
+    }
+  ]
+}

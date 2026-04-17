@@ -1,0 +1,48 @@
+# 后端 .dockerignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 测试
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose*.yml
+
+# 文档
+*.md
+docs/
+
+# 环境文件
+.env
+.env.local
+.env.production
+
+# 数据目录（挂载卷）
+app/uploads/
+app/static/

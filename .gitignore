@@ -1,0 +1,101 @@
+# 依赖
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+.Python
+
+# 构建产物
+dist/
+build/
+*.egg-info/
+*.egg
+.eggs/
+
+# 环境变量
+.env
+.env.local
+.env.*.local
+docker/.env
+docker/.env.production
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# 系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+
+# 日志
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 测试覆盖率
+coverage/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Expo
+apps/frontend/.expo/
+apps/frontend/*.jks
+apps/frontend/*.p8
+apps/frontend/*.p12
+apps/frontend/*.key
+apps/frontend/*.mobileprovision
+apps/frontend/*.orig.*
+
+# React Native
+apps/frontend/android/app/build/
+apps/frontend/android/.gradle/
+apps/frontend/ios/build/
+apps/frontend/ios/Pods/
+
+# Python
+apps/backend/.pytest_cache/
+apps/backend/.mypy_cache/
+apps/backend/htmlcov/
+apps/backend/.tox/
+
+# Docker
+*.log
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+*.temp
+
+# 打包文件
+*.zip
+*.tar.gz
+*.rar
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+apps/backend/app/static/
+apps/backend/app/uploads/
+apps/backend/uploads/
+release
+design-system
