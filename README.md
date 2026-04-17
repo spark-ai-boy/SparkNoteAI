@@ -19,8 +19,8 @@
 </p>
 
 <p align="center">
-  <a target="_blank" href="https://sparknoteai.github.io">📖 官方网站</a> &nbsp; | &nbsp;
-  文档(Coming Soon)
+  <a target="_blank" href="https://spark-ai-boy.github.io">📖 官方网站</a> &nbsp; | &nbsp;
+  <a target="_blank" href="https://spark-ai-boy.github.io/docs/intro">文档</a> &nbsp;
 </p>
 
 
