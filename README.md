@@ -284,4 +284,4 @@ npm run electron:build:win    # 构建桌面应用（Windows）
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=sparknoteai/SparkNoteAI&type=Date)](https://www.star-history.com/#sparknoteai/SparkNoteAI&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=spark-ai-boy/SparkNoteAI&type=Date)](https://www.star-history.com/#spark-ai-boy/SparkNoteAI&Date)
