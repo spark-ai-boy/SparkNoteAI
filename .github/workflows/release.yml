@@ -57,6 +57,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./apps/backend
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             sparknoteai/backend:${{ env.APP_VERSION }}
@@ -70,6 +71,7 @@ jobs:
         with:
           context: .
           file: ./apps/frontend/Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             sparknoteai/frontend:${{ env.APP_VERSION }}
@@ -121,13 +123,13 @@ jobs:
           cd apps/frontend
           npm version ${{ needs.version.outputs.version }} --no-git-tag-version --allow-same-version
 
+      - name: Build frontend (Web)
+        run: npm run build:frontend
+
       - name: Fix electron paths
         run: |
           cd apps/frontend
           node fix-electron-paths.js
-
-      - name: Build frontend (Web)
-        run: npm run build:frontend
 
       - name: Build Electron (macOS ${{ matrix.label }})
         run: |
@@ -185,14 +187,14 @@ jobs:
           cd apps/frontend
           npm version ${{ needs.version.outputs.version }} --no-git-tag-version --allow-same-version
 
+      - name: Build frontend (Web)
+        run: npm run build:frontend
+
       - name: Fix electron paths
         shell: pwsh
         run: |
           Set-Location apps/frontend
           node fix-electron-paths.js
-
-      - name: Build frontend (Web)
-        run: npm run build:frontend
 
       - name: Build Electron (Windows x64)
         run: |
