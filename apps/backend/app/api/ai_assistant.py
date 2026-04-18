@@ -153,8 +153,11 @@ async def chat(
         "你是一个有帮助的 AI 助手，名字叫知语拾光。"
     )
 
-    # 准备消息列表
+    # 准备消息列表，按 max_history 截断
     messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
+    max_history = custom_settings.get("max_history", 20)
+    if len(messages) > max_history:
+        messages = messages[-max_history:]
 
     # 获取模型
     model = llm_config.get("model")
@@ -183,7 +186,8 @@ async def chat(
                 async for chunk in provider.generate_stream(
                     messages=messages,
                     model=model,
-                    system_prompt=system_prompt
+                    system_prompt=system_prompt,
+                    temperature=temperature,
                 ):
                     yield f"data: {json.dumps({'content': chunk})}\n\n"
                 yield "data: [DONE]\n\n"
@@ -206,7 +210,8 @@ async def chat(
             response = await provider.generate(
                 prompt=full_prompt,
                 model=model,
-                system_prompt=system_prompt
+                system_prompt=system_prompt,
+                temperature=temperature,
             )
             return {"content": response}
         except Exception as e:

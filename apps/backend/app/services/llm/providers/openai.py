@@ -143,7 +143,7 @@ class OpenAIProvider(LLMProvider):
 
         return True, "连接成功"
 
-    async def generate(self, prompt: str, model: str, system_prompt: str = None) -> str:
+    async def generate(self, prompt: str, model: str, system_prompt: str = None, temperature: float = 0.7) -> str:
         """生成文本"""
         messages = []
         if system_prompt:
@@ -161,7 +161,7 @@ class OpenAIProvider(LLMProvider):
                     "model": model,
                     "messages": messages,
                     "max_tokens": 2000,
-                    "temperature": 0.7,
+                    "temperature": temperature,
                 },
                 timeout=60.0
             )
@@ -173,7 +173,8 @@ class OpenAIProvider(LLMProvider):
         self,
         messages: List[Dict[str, str]],
         model: str,
-        system_prompt: str = None
+        system_prompt: str = None,
+        temperature: float = 0.7,
     ) -> AsyncGenerator[str, None]:
         """流式生成"""
         msg_list = []
@@ -193,7 +194,7 @@ class OpenAIProvider(LLMProvider):
                     "model": model,
                     "messages": msg_list,
                     "max_tokens": 2000,
-                    "temperature": 0.7,
+                    "temperature": temperature,
                     "stream": True,
                 },
                 timeout=60.0

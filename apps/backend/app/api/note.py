@@ -101,19 +101,56 @@ async def create_note(
     db.commit()
     db.refresh(db_note)
 
-    # 如果未提供摘要，后台生成
+    # 如果未提供摘要且开启了自动总结，后台生成
     if not note_data.summary and note_data.content:
         from ..services.summary_generator import generate_summary
+        from ..models.integration import FeatureSetting as FeatureSettingModel
         try:
-            summary = await generate_summary(db, current_user.id, note_data.content)
-            if summary:
-                db_note.summary = summary
-                db.commit()
-                logger.info(f"笔记摘要生成成功: note_id={db_note.id}, user_id={current_user.id}")
-            else:
-                logger.warning(f"笔记摘要生成返回空: note_id={db_note.id}, user_id={current_user.id}")
+            notes_feature = db.query(FeatureSettingModel).filter(
+                FeatureSettingModel.user_id == current_user.id,
+                FeatureSettingModel.feature_id == "notes"
+            ).first()
+            auto_summarize = True
+            if notes_feature and notes_feature.custom_settings:
+                auto_summarize = notes_feature.custom_settings.get("auto_summarize", True)
+
+            if auto_summarize:
+                summary = await generate_summary(db, current_user.id, note_data.content)
+                if summary:
+                    db_note.summary = summary
+                    db.commit()
+                    logger.info(f"笔记摘要生成成功: note_id={db_note.id}, user_id={current_user.id}")
+                else:
+                    logger.warning(f"笔记摘要生成返回空: note_id={db_note.id}, user_id={current_user.id}")
         except Exception as e:
             logger.error(f"笔记摘要生成异常: note_id={db_note.id}, user_id={current_user.id}, error={e}")
+
+        # 自动提取标签（如果开启）
+        try:
+            auto_extract_tags = False
+            extract_tags_count = 3
+            if notes_feature and notes_feature.custom_settings:
+                auto_extract_tags = notes_feature.custom_settings.get("auto_extract_tags", False)
+                extract_tags_count = notes_feature.custom_settings.get("extract_tags_count", 3)
+
+            if auto_extract_tags:
+                from ..services.summary_generator import extract_tags_with_llm
+                from ..models.note import Tag
+                tag_names = await extract_tags_with_llm(
+                    db, current_user.id, note_data.content, tag_count=extract_tags_count
+                )
+                for tag_name in tag_names:
+                    tag = db.query(Tag).filter(
+                        Tag.name == tag_name,
+                        Tag.user_id == current_user.id
+                    ).first()
+                    if tag:
+                        note_tag = NoteTag(note_id=db_note.id, tag_id=tag.id)
+                        db.add(note_tag)
+                db.commit()
+                db.refresh(db_note)
+        except Exception as e:
+            logger.error(f"笔记自动提取标签异常: note_id={db_note.id}, user_id={current_user.id}, error={e}")
 
     # 添加标签关联
     if note_data.tag_ids:

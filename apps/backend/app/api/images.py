@@ -21,9 +21,33 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 def _get_storage_provider(db: Session, user_id: int):
     """获取当前用户的默认图片存储 provider
 
-    优先使用用户配置的图床，无配置时自动使用本地存储。
+    优先使用笔记场景配置的图床，无配置时使用默认 storage 集成，最后回退到本地存储。
     """
+    from app.models.integration import FeatureSetting, Integration
+
     service = IntegrationService(db)
+
+    # 1. 优先使用笔记场景配置的图床
+    notes_feature = db.query(FeatureSetting).filter(
+        FeatureSetting.user_id == user_id,
+        FeatureSetting.feature_id == "notes"
+    ).first()
+    storage_config_id = None
+    if notes_feature and notes_feature.integration_refs:
+        storage_config_id = notes_feature.integration_refs.get("storage")
+
+    if storage_config_id:
+        integration = db.query(Integration).filter(
+            Integration.user_id == user_id,
+            Integration.integration_type == "storage",
+            Integration.config_key == storage_config_id,
+            Integration.is_enabled == True
+        ).first()
+        if integration:
+            decrypted_config = IntegrationService._decrypt_config(integration.config or {})
+            return ImageStorageRegistry.create_provider(integration.provider, decrypted_config)
+
+    # 2. 回退到默认 storage 集成
     integration = service.get_default_integration(
         user_id=user_id,
         integration_type="storage"
@@ -33,7 +57,7 @@ def _get_storage_provider(db: Session, user_id: int):
         decrypted_config = IntegrationService._decrypt_config(integration.config or {})
         return ImageStorageRegistry.create_provider(integration.provider, decrypted_config)
 
-    # 无配置时，使用本地存储
+    # 3. 无配置时，使用本地存储
     return ImageStorageRegistry.create_provider("local", {})
 
 

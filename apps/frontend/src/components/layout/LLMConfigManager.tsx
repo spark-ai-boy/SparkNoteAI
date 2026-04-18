@@ -30,6 +30,8 @@ const PROVIDER_ICONS: Record<string, any> = {
   anthropic: require('@/assets/provider-icons/anthropic.png'),
   azure_openai: require('@/assets/provider-icons/azure_openai.png'),
   aliyun: require('@/assets/provider-icons/aliyun_codeplan.png'),
+  openai_compatible: require('@/assets/provider-icons/openai.png'),
+  anthropic_compatible: require('@/assets/provider-icons/anthropic.png'),
 };
 
 // Provider 名称映射
@@ -38,6 +40,8 @@ const PROVIDER_NAMES: Record<string, string> = {
   anthropic: 'Anthropic',
   azure_openai: 'Azure OpenAI',
   aliyun: '阿里云 Code Plan',
+  openai_compatible: 'OpenAI 兼容',
+  anthropic_compatible: 'Anthropic 兼容',
 };
 
 // 默认模型
@@ -46,6 +50,8 @@ const DEFAULT_MODELS: Record<string, string> = {
   anthropic: 'claude-3-5-sonnet-20241022',
   azure_openai: 'gpt-4o',
   aliyun: 'qwen-coder-plus',
+  openai_compatible: '',
+  anthropic_compatible: '',
 };
 
 export const LLMConfigManager: React.FC<LLMConfigManagerProps> = ({ onClose }) => {
@@ -79,6 +85,7 @@ export const LLMConfigManager: React.FC<LLMConfigManagerProps> = ({ onClose }) =
   const [formModel, setFormModel] = useState('');
   const [formApiKey, setFormApiKey] = useState('');
   const [formEndpoint, setFormEndpoint] = useState('');
+  const [formBaseUrl, setFormBaseUrl] = useState('');
   const [isTestingLocal, setIsTestingLocal] = useState(false);
 
   // 加载数据
@@ -104,6 +111,7 @@ export const LLMConfigManager: React.FC<LLMConfigManagerProps> = ({ onClose }) =
       setFormModel(config.config?.model || DEFAULT_MODELS[provider] || '');
       setFormApiKey(''); // 不显示已有 API Key
       setFormEndpoint(config.config?.endpoint || '');
+      setFormBaseUrl(config.config?.base_url || '');
       setIsTestingLocal(false);
     }
   }, [editingIntegration, DEFAULT_MODELS]);
@@ -236,6 +244,7 @@ export const LLMConfigManager: React.FC<LLMConfigManagerProps> = ({ onClose }) =
             model: formModel,
             api_key: formApiKey,
             endpoint: formEndpoint || undefined,
+            base_url: formBaseUrl || undefined,
           });
         } else {
           // 没有输入新 API Key，使用已有配置测试
@@ -247,6 +256,7 @@ export const LLMConfigManager: React.FC<LLMConfigManagerProps> = ({ onClose }) =
           model: formModel,
           api_key: formApiKey,
           endpoint: formEndpoint || undefined,
+          base_url: formBaseUrl || undefined,
         });
       }
 
@@ -281,6 +291,7 @@ export const LLMConfigManager: React.FC<LLMConfigManagerProps> = ({ onClose }) =
           model: formModel,
           api_key: formApiKey,
           endpoint: formEndpoint || undefined,
+          base_url: formBaseUrl || undefined,
         },
         is_default: false,
         is_enabled: true,
@@ -493,6 +504,24 @@ export const LLMConfigManager: React.FC<LLMConfigManagerProps> = ({ onClose }) =
                   />
                 </View>
               )}
+
+              {/* 兼容协议专用 API 地址 */}
+              {(selectedProvider === 'openai_compatible' || selectedProvider === 'anthropic_compatible') && (
+                <View style={styles.formSection}>
+                  <Text style={[styles.formLabel, { color: colors.text }]}>API 地址</Text>
+                  <TextInput
+                    style={[styles.formInput, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border, color: colors.text }]}
+                    placeholder={selectedProvider === 'openai_compatible' ? 'http://localhost:11434/v1' : 'http://localhost:8080/v1'}
+                    placeholderTextColor={colors.textSecondary}
+                    value={formBaseUrl}
+                    onChangeText={setFormBaseUrl}
+                    autoCapitalize="none"
+                  />
+                  <Text style={[styles.formHint, { color: colors.textSecondary }]}>
+                    兼容协议的 API 基础地址，如 Ollama (http://localhost:11434/v1)
+                  </Text>
+                </View>
+              )}
             </ScrollView>
 
             {/* 底部按钮 */}
@@ -611,6 +640,7 @@ export const LLMConfigManager: React.FC<LLMConfigManagerProps> = ({ onClose }) =
             setFormModel('');
             setFormApiKey('');
             setFormEndpoint('');
+            setFormBaseUrl('');
             setIsTestingLocal(false);
             setShowCreateModal(true);
           }}

@@ -74,6 +74,7 @@ apps/backend/.pytest_cache/
 apps/backend/.mypy_cache/
 apps/backend/htmlcov/
 apps/backend/.tox/
+apps/backend/data
 
 # Docker
 *.log

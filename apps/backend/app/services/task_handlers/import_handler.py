@@ -93,17 +93,51 @@ class ImportTaskHandler(TaskHandler):
             db.add(note)
             db.commit()
 
-            # 生成摘要
+            # 生成摘要（检查是否开启自动总结）
             try:
-                summary = await generate_summary(db, user_id, result.content)
-                if summary:
-                    note.summary = summary
-                    db.commit()
+                from ...models.integration import FeatureSetting as FeatureSettingModel
+                notes_feature = db.query(FeatureSettingModel).filter(
+                    FeatureSettingModel.user_id == user_id,
+                    FeatureSettingModel.feature_id == "notes"
+                ).first()
+                auto_summarize = True  # 默认开启
+                if notes_feature and notes_feature.custom_settings:
+                    auto_summarize = notes_feature.custom_settings.get("auto_summarize", True)
+
+                if auto_summarize:
+                    summary = await generate_summary(db, user_id, result.content)
+                    if summary:
+                        note.summary = summary
+                        db.commit()
             except Exception as e:
                 logger.error(f"导入任务生成摘要失败: task_id={task_id}, user_id={user_id}, error={e}")
 
             # 注意：不再将平台原始标签（如小红书的 #话题）创建为系统标签
             # 这些标签已保留在笔记内容的 markdown 中，供展示用
+
+            # 自动提取标签（如果开启）
+            try:
+                if notes_feature and notes_feature.custom_settings:
+                    auto_extract_tags = notes_feature.custom_settings.get("auto_extract_tags", False)
+                    if auto_extract_tags:
+                        from ...services.summary_generator import extract_tags_with_llm
+                        extract_tags_count = notes_feature.custom_settings.get("extract_tags_count", 3)
+                        tag_names = await extract_tags_with_llm(
+                            db, user_id, result.content, tag_count=extract_tags_count
+                        )
+                        if tag_names:
+                            from ...models.note import Tag, NoteTag
+                            for tag_name in tag_names:
+                                tag = db.query(Tag).filter(
+                                    Tag.name == tag_name,
+                                    Tag.user_id == user_id
+                                ).first()
+                                if tag:
+                                    note_tag = NoteTag(note_id=note.id, tag_id=tag.id)
+                                    db.add(note_tag)
+                            db.commit()
+            except Exception as e:
+                logger.error(f"导入任务自动提取标签失败: task_id={task_id}, user_id={user_id}, error={e}")
 
             await progress_callback(90, "正在更新知识图谱...")
 

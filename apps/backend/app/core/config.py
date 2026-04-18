@@ -1,6 +1,7 @@
 # 配置模块
 
-from pydantic_settings import BaseSettings
+import os
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional, List
 
 
@@ -11,10 +12,14 @@ class Settings(BaseSettings):
     1. 环境变量（Docker 注入）
     2. 代码默认值（仅开发环境兜底）
     """
+    model_config = SettingsConfigDict(
+        case_sensitive=True,
+        env_file=None,  # 不读取 .env 文件，仅使用环境变量
+    )
 
     # 应用
     APP_NAME: str = "SparkNoteAI"
-    APP_VERSION: str = "1.1.0-dev"
+    APP_VERSION: str = "dev"
     BUILD_NUMBER: str = "unknown"
     DEBUG: bool = False
 
@@ -64,9 +69,6 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> List[str]:
         return [url.strip() for url in self.CORS_ORIGINS.split(",") if url.strip()]
-
-    class Config:
-        case_sensitive = True
 
 
 settings = Settings()

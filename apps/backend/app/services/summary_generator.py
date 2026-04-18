@@ -7,7 +7,7 @@
 """
 
 import re
-from typing import Optional
+from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from app.core.logger import get_logger
@@ -105,12 +105,19 @@ def truncate_content(content: str, max_length: int = SUMMARY_TRUNCATE_LENGTH) ->
     return plain_text[:max_length].rstrip() + "..."
 
 
-async def generate_summary_with_llm(content: str, integration: Integration) -> Optional[str]:
+async def generate_summary_with_llm(
+    content: str,
+    integration: Integration,
+    temperature: float = 0.5,
+    max_length: int = 500,
+) -> Optional[str]:
     """使用 LLM 生成笔记摘要
 
     Args:
         content: 笔记内容（可能包含 HTML）
         integration: LLM 集成配置
+        temperature: 模型温度
+        max_length: 摘要最大字数
 
     Returns:
         生成的摘要，失败时返回 None
@@ -138,12 +145,13 @@ async def generate_summary_with_llm(content: str, integration: Integration) -> O
         # 截取内容前 3000 字符避免超长
         plain_text = extract_meaningful_text(content)[:3000]
 
-        system_prompt = "你是一个专业的内容摘要助手。请为以下内容生成一段简洁的摘要（50-100字），概括核心要点。直接返回摘要，不要添加其他说明。"
+        system_prompt = f"你是一个专业的内容摘要助手。请为以下内容生成一段简洁的摘要（50-{max_length}字），概括核心要点。直接返回摘要，不要添加其他说明。"
 
         summary = await provider.generate(
             prompt=plain_text,
             model=model,
             system_prompt=system_prompt,
+            temperature=temperature,
         )
 
         result = summary.strip() if summary else None
@@ -154,7 +162,9 @@ async def generate_summary_with_llm(content: str, integration: Integration) -> O
         return None
 
 
-async def generate_summary(db: Session, user_id: int, content: str) -> str:
+async def generate_summary(
+    db: Session, user_id: int, content: str, max_length: int = None
+) -> str:
     """生成笔记摘要
 
     优先使用 LLM 生成，如果未配置 LLM 则截取内容前 N 个字符。
@@ -163,6 +173,7 @@ async def generate_summary(db: Session, user_id: int, content: str) -> str:
         db: 数据库会话
         user_id: 用户 ID
         content: 笔记内容
+        max_length: 摘要最大字数（默认从场景配置读取，无配置时使用 500）
 
     Returns:
         生成的摘要文本
@@ -170,15 +181,125 @@ async def generate_summary(db: Session, user_id: int, content: str) -> str:
     if not content or not content.strip():
         return ""
 
+    # 获取场景配置
+    notes_feature = db.query(FeatureSetting).filter(
+        FeatureSetting.user_id == user_id,
+        FeatureSetting.feature_id == "notes"
+    ).first()
+
+    custom = notes_feature.custom_settings if notes_feature else {}
+    temperature = custom.get("temperature", 0.5)
+    if max_length is None:
+        max_length = custom.get("summary_max_length", 500)
+
     # 尝试使用 LLM 生成
     integration = get_llm_for_user(db, user_id)
     if integration and integration.config and integration.config.get("api_key"):
         logger.info(f"使用 LLM 生成摘要: user_id={user_id}, integration_id={integration.id}, provider={integration.provider}")
-        summary = await generate_summary_with_llm(content, integration)
+        summary = await generate_summary_with_llm(
+            content, integration, temperature=temperature, max_length=max_length
+        )
         if summary:
             return summary
         logger.warning(f"LLM 摘要返回空，回退到截断模式: user_id={user_id}")
 
     # 回退到截断
     logger.info(f"使用截断模式生成摘要: user_id={user_id}")
-    return truncate_content(content)
+    return truncate_content(content, max_length)
+
+
+async def extract_tags_with_llm(
+    db: Session, user_id: int, content: str, tag_count: int = 3,
+) -> List[str]:
+    """使用 LLM 从笔记内容中提取标签
+
+    Args:
+        db: 数据库会话
+        user_id: 用户 ID
+        content: 笔记内容
+        tag_count: 提取的标签数量
+
+    Returns:
+        标签名称列表
+    """
+    from app.models.note import Tag
+
+    integration = get_llm_for_user(db, user_id)
+    if not integration or not integration.config or not integration.config.get("api_key"):
+        return []
+
+    try:
+        config = integration.config or {}
+        api_key = config.get("api_key")
+        try:
+            api_key = decrypt_api_key(api_key)
+        except Exception:
+            pass
+
+        provider_id = integration.provider or "openai"
+        model = config.get("model", "")
+
+        provider = ProviderRegistry.create_provider(provider_id, {
+            **config,
+            "api_key": api_key,
+        })
+
+        plain_text = extract_meaningful_text(content)[:2000]
+
+        system_prompt = (
+            f"你是一个专业的关键词提取助手。请从以下内容中提取 {tag_count} 个最能概括内容主题的关键词或短语作为标签。"
+            "每个标签 2-6 个字，不要包含标点符号。直接返回 JSON 格式：{\"tags\": [\"标签1\", \"标签2\"]}，不要其他说明。"
+        )
+
+        result = await provider.generate(
+            prompt=plain_text,
+            model=model,
+            system_prompt=system_prompt,
+            temperature=0.3,
+        )
+
+        if not result:
+            return []
+
+        # 解析 JSON
+        result = result.strip()
+        if result.startswith("```json"):
+            result = result[7:]
+        if result.endswith("```"):
+            result = result[:-3]
+        result = result.strip()
+
+        import json as json_mod
+        data = json_mod.loads(result)
+        tags = data.get("tags", [])[:tag_count]
+
+        # 去重并查找或创建标签
+        tag_names = []
+        for tag_name in tags:
+            tag_name = tag_name.strip().strip("#").strip()
+            if not tag_name:
+                continue
+
+            # 查找用户已有的同名标签
+            existing = db.query(Tag).filter(
+                Tag.user_id == user_id,
+                Tag.name == tag_name
+            ).first()
+            if not existing:
+                existing = db.query(Tag).filter(
+                    Tag.user_id.is_(None),
+                    Tag.name == tag_name
+                ).first()
+            if not existing:
+                new_tag = Tag(name=tag_name, user_id=user_id)
+                db.add(new_tag)
+                db.flush()
+                tag_names.append(new_tag.name)
+            else:
+                tag_names.append(existing.name)
+
+        logger.info(f"LLM 标签提取成功: user_id={user_id}, tags={tag_names}")
+        return tag_names
+    except Exception as e:
+        logger.error(f"LLM 标签提取失败: user_id={user_id}, error={e}")
+        return []

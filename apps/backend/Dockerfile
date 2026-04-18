@@ -10,7 +10,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # 构建参数 - 版本号（可通过 --build-arg 传入）
-ARG APP_VERSION=1.1.0-dev
+ARG APP_VERSION=dev
 ARG BUILD_NUMBER=unknown
 
 # 设置版本环境变量
@@ -34,8 +34,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # 创建上传和静态文件目录
-RUN mkdir -p /app/app/uploads/images /app/app/static/images && \
-    chmod -R 755 /app/app/uploads /app/app/static
+RUN mkdir -p /app/data/uploads/images && \
+    chmod -R 755 /app/data/uploads
 
 # 暴露端口
 EXPOSE 8000
@@ -46,4 +46,4 @@ LABEL version="${APP_VERSION}" \
       app.name="SparkNoteAI"
 
 # 使用 Uvicorn 工作进程启动（生产环境推荐）
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
