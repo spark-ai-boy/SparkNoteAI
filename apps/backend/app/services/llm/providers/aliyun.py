@@ -114,7 +114,7 @@ class AliyunProvider(LLMProvider):
         except Exception as e:
             return False, f"连接失败: {str(e)}"
 
-    async def generate(self, prompt: str, model: str, system_prompt: str = None) -> str:
+    async def generate(self, prompt: str, model: str, system_prompt: str = None, temperature: float = 0.7) -> str:
         """生成文本"""
         api_key = self.get_api_key()
         base_url = self.get_base_url() or "https://dashscope.aliyuncs.com/api/v1"
@@ -134,7 +134,7 @@ class AliyunProvider(LLMProvider):
                 json={
                     "model": model,
                     "input": {"messages": messages},
-                    "parameters": {"max_tokens": 2000},
+                    "parameters": {"max_tokens": 2000, "temperature": temperature},
                 },
                 timeout=60.0
             )
@@ -152,7 +152,8 @@ class AliyunProvider(LLMProvider):
         self,
         messages: List[Dict[str, str]],
         model: str,
-        system_prompt: str = None
+        system_prompt: str = None,
+        temperature: float = 0.7,
     ) -> AsyncGenerator[str, None]:
         """流式生成"""
         api_key = self.get_api_key()
@@ -175,7 +176,7 @@ class AliyunProvider(LLMProvider):
                 json={
                     "model": model,
                     "input": {"messages": msg_list},
-                    "parameters": {"max_tokens": 2000, "incremental_output": True},
+                    "parameters": {"max_tokens": 2000, "temperature": temperature, "incremental_output": True},
                     "stream": True,
                 },
                 timeout=60.0

@@ -310,7 +310,11 @@ class KnowledgeGraphService:
             else:
                 raise ValueError("未指定模型且无法获取默认模型")
 
-        return await provider.generate(prompt, model, system_prompt)
+        # 获取场景配置中的 temperature
+        feature_config = self._get_feature_config()
+        temperature = feature_config.get("temperature", 0.7)
+
+        return await provider.generate(prompt, model, system_prompt, temperature=temperature)
 
     async def _batch_extract_concepts(
         self,
@@ -381,11 +385,16 @@ class KnowledgeGraphService:
         Returns:
             概念列表
         """
+        # 获取实体数量配置
+        feature_config = self._get_feature_config()
+        entity_count = feature_config.get("entity_count", 10)
+
         # 构建已有概念提示
         existing_hint = ""
         if existing_concepts:
+            max_hint = entity_count * 20  # 根据配置动态调整提示数量
             existing_list = "\n".join(
-                [f"- {c['name']}: {c.get('description', '无描述')}" for c in existing_concepts]
+                [f"- {c['name']}: {c.get('description', '无描述')}" for c in existing_concepts[:max_hint]]
             )
             existing_hint = f"""
 **已有概念列表**（请优先从中选择匹配的概念，不要创建重复的变体）：
@@ -399,7 +408,7 @@ class KnowledgeGraphService:
         system_prompt = f"""你是一个专业的知识图谱构建助手。你的任务是从用户的笔记中提取核心概念和关键词。
 
 请遵循以下规则：
-1. 提取 3-8 个核心概念（重要的名词、术语、人物、地点等）
+1. 提取 {min(3, entity_count)}-{entity_count} 个核心概念（重要的名词、术语、人物、地点等）
 2. 为每个概念提供简短的描述（不超过 50 字）
 3. 判断概念的类型：concept（核心概念）、topic（主题类别）、entity（实体：人物/地点/组织）
 4. 返回严格的 JSON 格式，不要包含其他说明文字{existing_hint}"""

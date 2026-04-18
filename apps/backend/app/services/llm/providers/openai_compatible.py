@@ -1,4 +1,4 @@
-# Azure OpenAI Provider
+# OpenAI 兼容协议 Provider
 
 from typing import List, Dict, Any, Tuple, AsyncGenerator
 import httpx
@@ -7,13 +7,13 @@ import json
 from ..base_provider import LLMProvider, ConfigField, ModelInfo
 
 
-class AzureOpenAIProvider(LLMProvider):
-    """Azure OpenAI 提供商"""
+class OpenAICompatibleProvider(LLMProvider):
+    """OpenAI 兼容协议提供商（用户自定义 API）"""
 
-    provider_id = "azure_openai"
-    provider_name = "Azure OpenAI"
-    description = "Azure OpenAI 服务，提供企业级的 OpenAI 模型访问"
-    website = "https://azure.microsoft.com/services/openai"
+    provider_id = "openai_compatible"
+    provider_name = "OpenAI 兼容"
+    description = "兼容 OpenAI API 协议的第三方服务，如 Ollama、vLLM、LocalAI 等"
+    website = ""
 
     config_fields = [
         ConfigField(
@@ -21,66 +21,41 @@ class AzureOpenAIProvider(LLMProvider):
             label="API Key",
             type="password",
             required=True,
-            description="Azure OpenAI API Key",
-            placeholder="..."
+            description="API Key（部分服务可留空）",
+            placeholder="sk-..."
         ),
         ConfigField(
-            name="endpoint",
-            label="Endpoint",
+            name="base_url",
+            label="API 地址",
             type="url",
             required=True,
-            description="Azure OpenAI Endpoint，格式如 https://xxx.openai.azure.com",
-            placeholder="https://your-resource.openai.azure.com"
-        ),
-        ConfigField(
-            name="api_version",
-            label="API Version",
-            type="text",
-            required=False,
-            description="API 版本，默认 2023-05-15",
-            placeholder="2023-05-15",
-            default="2023-05-15"
+            description="兼容 OpenAI 协议的 API 基础地址",
+            placeholder="http://localhost:11434/v1"
         ),
     ]
 
     supports_custom_model = True
-    supports_model_list = True
+    supports_model_list = False
+
+    DEFAULT_MODELS: List[ModelInfo] = []
 
     async def get_models(self) -> List[ModelInfo]:
-        """获取可用模型列表
-
-        Azure 模型是部署的，名称由用户自定义
-        """
-        return [
-            ModelInfo(id="gpt-4", name="GPT-4", description="部署名称: gpt-4"),
-            ModelInfo(id="gpt-4o", name="GPT-4o", description="部署名称: gpt-4o"),
-            ModelInfo(id="gpt-35-turbo", name="GPT-3.5 Turbo", description="部署名称: gpt-35-turbo"),
-        ]
+        """获取可用模型列表"""
+        return self.DEFAULT_MODELS
 
     async def validate_config(self) -> Tuple[bool, str]:
         """验证配置"""
         api_key = self.get_api_key()
-        endpoint = self.config.get("endpoint")
-
-        if not api_key:
-            return False, "API Key 不能为空"
-        if not endpoint:
-            return False, "Endpoint 不能为空"
+        base_url = self.get_base_url()
+        if not base_url:
+            return False, "API 地址不能为空"
 
         try:
-            # 使用用户提供的模型或默认模型进行测试
-            model = self.get_model() or "gpt-4"
-            api_version = self.config.get("api_version", "2023-05-15")
-            url = f"{endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}"
-
+            base_url = base_url.rstrip("/")
             async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    url,
-                    headers={"api-key": api_key},
-                    json={
-                        "messages": [{"role": "user", "content": "Hi"}],
-                        "max_tokens": 1,
-                    },
+                response = await client.get(
+                    f"{base_url}/models",
+                    headers={"Authorization": f"Bearer {api_key}"},
                     timeout=10.0
                 )
                 response.raise_for_status()
@@ -88,30 +63,26 @@ class AzureOpenAIProvider(LLMProvider):
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 401:
                 return False, "API Key 无效"
-            if e.response.status_code == 404:
-                return False, "部署名称不存在，请检查模型名称"
             return False, f"HTTP 错误: {e.response.status_code}"
         except Exception as e:
             return False, f"连接失败: {str(e)}"
 
     async def generate(self, prompt: str, model: str, system_prompt: str = None, temperature: float = 0.7) -> str:
         """生成文本"""
-        api_key = self.config.get("api_key")
-        endpoint = self.config.get("endpoint")
-        api_version = self.config.get("api_version", "2023-05-15")
-
-        url = f"{endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}"
-
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
+        base_url = self.get_base_url().rstrip("/")
+        api_key = self.get_api_key()
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                url,
-                headers={"api-key": api_key},
+                f"{base_url}/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}"},
                 json={
+                    "model": model,
                     "messages": messages,
                     "max_tokens": 2000,
                     "temperature": temperature,
@@ -119,7 +90,8 @@ class AzureOpenAIProvider(LLMProvider):
                 timeout=60.0
             )
             response.raise_for_status()
-            return response.json()["choices"][0]["message"]["content"]
+            data = response.json()
+            return data["choices"][0]["message"]["content"]
 
     async def generate_stream(
         self,
@@ -129,23 +101,21 @@ class AzureOpenAIProvider(LLMProvider):
         temperature: float = 0.7,
     ) -> AsyncGenerator[str, None]:
         """流式生成"""
-        api_key = self.config.get("api_key")
-        endpoint = self.config.get("endpoint")
-        api_version = self.config.get("api_version", "2023-05-15")
-
-        url = f"{endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}"
-
         msg_list = []
         if system_prompt:
             msg_list.append({"role": "system", "content": system_prompt})
         msg_list.extend(messages)
 
+        base_url = self.get_base_url().rstrip("/")
+        api_key = self.get_api_key()
+
         async with httpx.AsyncClient() as client:
             async with client.stream(
                 "POST",
-                url,
-                headers={"api-key": api_key},
+                f"{base_url}/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}"},
                 json={
+                    "model": model,
                     "messages": msg_list,
                     "max_tokens": 2000,
                     "temperature": temperature,

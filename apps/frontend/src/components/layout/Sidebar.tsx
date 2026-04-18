@@ -221,7 +221,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onTagC
         <View style={[styles.footerLinks, { borderTopColor: colors.borderLight }]}>
           <TouchableOpacity
             style={styles.footerLink}
-            onPress={() => Linking.openURL('https://github.com/sparknoteai/SparkNoteAI')}
+            onPress={() => Linking.openURL('https://github.com/spark-ai-boy/SparkNoteAI')}
           >
             <Image
               source={effectiveTheme === 'dark' ? require('../../../assets/images/github-dark.png') : require('../../../assets/images/github-light.png')}
@@ -232,7 +232,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onTagC
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.footerLink}
-            onPress={() => Linking.openURL('https://sparknoteai.github.io')}
+            onPress={() => Linking.openURL('https://spark-ai-boy.github.io')}
           >
             <GlobeIcon size={14} strokeWidth={2} color={colors.textSecondary} />
             <Text style={[styles.footerLinkText, { color: colors.textSecondary }]}>文档</Text>

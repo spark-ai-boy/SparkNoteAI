@@ -738,6 +738,7 @@ const styles = StyleSheet.create({
   // Select Modal 样式
   modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.lg,
@@ -840,6 +841,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 15,
     fontWeight: '600',
+    color: '#FFFFFF',
   },
   // 确认弹窗样式
   overlay: {

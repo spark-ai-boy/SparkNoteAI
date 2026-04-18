@@ -5,7 +5,7 @@
 FROM node:20-alpine AS builder
 
 # 构建参数 - 版本号（可通过 --build-arg 传入）
-ARG APP_VERSION=1.1.0-dev
+ARG APP_VERSION=dev
 ARG BUILD_NUMBER=unknown
 
 # 设置版本环境变量
@@ -45,7 +45,7 @@ RUN npx expo export --platform web
 FROM nginx:alpine
 
 # 构建参数 - 版本号
-ARG APP_VERSION=1.1.0-dev
+ARG APP_VERSION=dev
 ARG BUILD_NUMBER=unknown
 
 # 设置版本标签
@@ -55,6 +55,13 @@ LABEL version="${APP_VERSION}" \
 
 # 复制构建产物到 Nginx
 COPY --from=builder /app/apps/frontend/dist /usr/share/nginx/html
+
+# 复制运行时配置脚本
+COPY apps/frontend/nginx-entrypoint.sh /docker-entrypoint.d/99-runtime-config.sh
+RUN chmod +x /docker-entrypoint.d/99-runtime-config.sh
+
+# Nginx 配置 - 支持 API 反向代理
+COPY apps/frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 # 暴露端口
 EXPOSE 80

@@ -1,4 +1,7 @@
-![](./images/home_screen.png)
+
+<p align="center">
+  <img src="./images/github-logo.png" width="400" />
+</p>
 
 <p align="center">
   <a href="https://github.com/sparknoteai/SparkNoteAI">

@@ -6,6 +6,8 @@ from .providers.openai import OpenAIProvider
 from .providers.anthropic import AnthropicProvider
 from .providers.azure import AzureOpenAIProvider
 from .providers.aliyun import AliyunProvider
+from .providers.openai_compatible import OpenAICompatibleProvider
+from .providers.anthropic_compatible import AnthropicCompatibleProvider
 
 
 class ProviderRegistry:
@@ -63,6 +65,8 @@ ProviderRegistry.register(OpenAIProvider)
 ProviderRegistry.register(AnthropicProvider)
 ProviderRegistry.register(AzureOpenAIProvider)
 ProviderRegistry.register(AliyunProvider)
+ProviderRegistry.register(OpenAICompatibleProvider)
+ProviderRegistry.register(AnthropicCompatibleProvider)
 
 
 # 兼容旧 API 的别名

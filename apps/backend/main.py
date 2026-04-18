@@ -34,8 +34,18 @@ async def startup_event():
     logger.info("应用启动中...")
 
     # 自动创建数据库表（首次启动）
-    Base.metadata.create_all(bind=engine)
-    logger.info("数据库表检查完成")
+    # 多进程环境下需先检查表是否已存在，避免并发创建冲突
+    from sqlalchemy import inspect
+    inspector = inspect(engine)
+    try:
+        if not inspector.has_table("users"):
+            Base.metadata.create_all(bind=engine)
+            logger.info("数据库表创建完成")
+        else:
+            logger.info("数据库表已存在，跳过创建")
+    except Exception as e:
+        logger.warning(f"数据库表创建时发生竞态冲突（可忽略）: {e}")
+        logger.info("数据库表已由另一进程创建")
 
     # 创建默认管理员用户
     db = SessionLocal()
@@ -90,9 +100,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={"detail": exc.errors()}
     )
 
-# 本地上传目录 - 使用绝对路径确保正确访问
-# 图片实际存储在 app/uploads/images 目录
-upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app", "uploads", "images")
+# 本地上传目录
+upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "uploads", "images")
 os.makedirs(upload_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=upload_dir), name="uploads")
 

@@ -44,5 +44,4 @@ docs/
 .env.production
 
 # 数据目录（挂载卷）
-app/uploads/
-app/static/
+data/uploads/

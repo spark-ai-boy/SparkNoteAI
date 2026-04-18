@@ -99,13 +99,14 @@ class LLMProvider(ABC):
         pass
 
     @abstractmethod
-    async def generate(self, prompt: str, model: str, system_prompt: str = None) -> str:
+    async def generate(self, prompt: str, model: str, system_prompt: str = None, temperature: float = 0.7) -> str:
         """生成文本（非流式）
 
         Args:
             prompt: 用户提示
             model: 模型名称
             system_prompt: 系统提示
+            temperature: 模型温度，0-1 之间，越低越稳定
 
         Returns:
             生成的文本
@@ -117,7 +118,8 @@ class LLMProvider(ABC):
         self,
         messages: List[Dict[str, str]],
         model: str,
-        system_prompt: str = None
+        system_prompt: str = None,
+        temperature: float = 0.7,
     ) -> AsyncGenerator[str, None]:
         """流式生成文本
 
@@ -125,6 +127,7 @@ class LLMProvider(ABC):
             messages: 消息列表 [{"role": "user", "content": "..."}]
             model: 模型名称
             system_prompt: 系统提示
+            temperature: 模型温度，0-1 之间，越低越稳定
 
         Yields:
             文本片段

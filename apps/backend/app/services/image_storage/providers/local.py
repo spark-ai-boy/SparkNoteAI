@@ -29,8 +29,8 @@ class LocalStorageProvider(ImageStorageProvider):
             type="text",
             required=False,
             description="图片存储的本地路径（相对于项目根目录）",
-            placeholder="app/uploads/images",
-            default="app/uploads/images"
+            placeholder="data/uploads/images",
+            default="data/uploads/images"
         ),
         ConfigField(
             name="base_url",
@@ -45,8 +45,10 @@ class LocalStorageProvider(ImageStorageProvider):
 
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
-        # 使用绝对路径，确保在正确的目录
-        base_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "uploads", "images")
+        # 使用绝对路径，确保与 main.py 中挂载的静态文件目录一致
+        # __file__ = app/services/image_storage/providers/local.py
+        # 往上 5 级到项目根目录（/app），再拼 data/uploads/images
+        base_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))), "data", "uploads", "images")
         self.base_path = self.get_config_value("base_path", base_dir)
         self.base_url = self.get_config_value("base_url", "/uploads")
 

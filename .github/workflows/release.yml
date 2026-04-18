@@ -91,7 +91,7 @@ jobs:
           - runner: macos-latest
             arch: arm64
             label: Apple Silicon
-          - runner: macos-13
+          - runner: macos-13-xlarge
             arch: x64
             label: Intel
 

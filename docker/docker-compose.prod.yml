@@ -1,6 +1,6 @@
 # 生产环境 Docker Compose 配置
 # 包含前端 + 后端 + 数据库 + Redis + Neo4j
-# 注意：Nginx 反向代理需部署在宿主机上，代理到 127.0.0.1:80（前端）和 127.0.0.1:8000（后端）
+# Nginx 内置反向代理：/api 自动转发到后端，无需额外配置
 
 services:
   # ==================== 前端服务 ====================
@@ -9,6 +9,8 @@ services:
     container_name: sparknoteai-frontend
     ports:
       - "80:80"
+    environment:
+      - API_BASE_URL=${API_BASE_URL:-}
     depends_on:
       backend:
         condition: service_healthy
@@ -24,15 +26,23 @@ services:
     container_name: sparknoteai-backend
     ports:
       - "8000:8000"
-    env_file:
-      - .env
     environment:
+      # 注意：不使用 env_file，避免 APP_VERSION 覆盖 Docker 镜像构建时的版本号
       - DATABASE_URL=postgresql://${POSTGRES_USER:-sparknoteai}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-sparknoteai}
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-10080}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - COMPATIBLE_CLIENT_VERSIONS=${COMPATIBLE_CLIENT_VERSIONS:-}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
       - DEBUG=false
     volumes:
-      - backend_uploads:/app/app/uploads
-      - backend_static:/app/app/static
+      - backend_uploads:/app/data/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -126,7 +136,6 @@ services:
 volumes:
   # 后端
   backend_uploads:
-  backend_static:
 
   # 数据库
   postgres_data:
