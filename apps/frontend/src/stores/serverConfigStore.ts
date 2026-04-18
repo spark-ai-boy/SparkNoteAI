@@ -152,8 +152,7 @@ export const useServerConfigStore = create<ServerConfigState>((set, get) => ({
     const stored = getStoredConfig();
     if (stored?.baseUrl) {
       set({ baseUrl: stored.baseUrl, isLoading: false });
-      // 更新 API 客户端的 baseURL
-      apiClient.defaults.baseURL = stored.baseUrl + '/api';
+      // 不覆盖 apiClient 的 baseURL，保持使用 apiConfig 中的配置（生产环境为 /api）
     } else {
       set({ isLoading: false });
     }

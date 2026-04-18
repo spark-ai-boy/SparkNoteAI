@@ -6,9 +6,6 @@ const fs = require('fs');
 // 开发环境检测：NODE_ENV 为 development 或者从命令行参数判断
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
-// 后端 API 地址
-const API_BASE_URL = 'http://localhost:8000';
-
 let mainWindow = null;
 
 function createWindow() {

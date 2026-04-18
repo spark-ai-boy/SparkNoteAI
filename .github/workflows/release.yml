@@ -73,6 +73,8 @@ jobs:
           file: ./apps/frontend/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             sparknoteai/frontend:${{ env.APP_VERSION }}
             sparknoteai/frontend:latest
