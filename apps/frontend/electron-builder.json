@@ -14,7 +14,8 @@
       "nsis",
       "portable"
     ],
-    "icon": "assets/icon.ico"
+    "icon": "assets/icon.ico",
+    "artifactName": "SparkNoteAI-${version}-${arch}-Setup.${ext}"
   },
   "nsis": {
     "oneClick": false,
@@ -23,6 +24,9 @@
     "uninstallerIcon": "assets/icon.ico",
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true
+  },
+  "portable": {
+    "artifactName": "SparkNoteAI-${version}-${arch}-portable.${ext}"
   },
   "mac": {
     "category": "public.app-category.productivity",

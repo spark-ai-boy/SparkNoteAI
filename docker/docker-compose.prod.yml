@@ -9,8 +9,6 @@ services:
     container_name: sparknoteai-frontend
     ports:
       - "80:80"
-    environment:
-      - API_BASE_URL=${API_BASE_URL:-}
     depends_on:
       backend:
         condition: service_healthy
@@ -33,7 +31,6 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-10080}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
-      - CORS_ORIGINS=${CORS_ORIGINS}
       - COMPATIBLE_CLIENT_VERSIONS=${COMPATIBLE_CLIENT_VERSIONS:-}
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}

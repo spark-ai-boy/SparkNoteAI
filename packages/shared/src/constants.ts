@@ -4,7 +4,7 @@
 export const API_CONFIG = {
   BASE_URL: {
     DEVELOPMENT: 'http://localhost:8000/api',
-    PRODUCTION: 'https://api.sparknoteai.com/api', // 官方服务器地址
+    PRODUCTION: '/api', // 生产环境使用相对路径，通过 Nginx 反向代理
   },
   TIMEOUT: 10000,
 } as const;
