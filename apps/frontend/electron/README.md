@@ -122,14 +122,7 @@ npx tauri build
 
 ### 配置后端 API 地址
 
-修改 `apps/frontend/src/api/client.ts`：
-
-```typescript
-// 生产环境使用打包的后端
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://api.sparknoteai.com' 
-  : 'http://localhost:8000';
-```
+Electron 桌面端首次启动时默认连接 `http://localhost:8000`。用户可以在设置页面的"服务器信息"中修改服务器地址。
 
 ### 添加自动更新
 

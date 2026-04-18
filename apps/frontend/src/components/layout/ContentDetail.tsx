@@ -1,6 +1,6 @@
 // 内容详情组件 - 右侧栏
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -22,10 +22,7 @@ import { Note, Tag } from '../../api/note';
 import { MdPreview } from 'md-editor-rt';
 import 'md-editor-rt/lib/style.css';
 
-// 转换图片 URL 函数，保持相对路径（生产环境同源）
-const transformImageUrl = (_src: string, _baseUrl?: string): string => {
-  return _src;
-};
+import { transformImageUrl, transformMarkdownImages } from '../../utils/imageUrlTransform';
 
 // 联合类型，支持 Fragment 和 Note
 type ContentItem = Fragment | Note;
@@ -61,6 +58,12 @@ export const ContentDetail: React.FC<ContentDetailProps> = ({
   const contentItem: ContentItem | undefined = note || fragment;
   const [localTitle, setLocalTitle] = useState(contentItem?.title || '');
   const [localContent, setLocalContent] = useState(contentItem?.content || '');
+
+  // 预处理 markdown 中的图片路径（开发模式下 transformImgUrl 可能不生效）
+  const processedContent = useMemo(() => {
+    const content = isEditing ? localContent : (contentItem?.content || '');
+    return transformMarkdownImages(content, baseUrl);
+  }, [isEditing, localContent, contentItem?.content, baseUrl]);
 
   // 获取标签颜色的辅助函数
   const getTagColor = (tagName: string): string => {
@@ -562,7 +565,7 @@ export const ContentDetail: React.FC<ContentDetailProps> = ({
                 }
               `}</style>
               <MdPreview
-                value={contentItem.content}
+                value={processedContent}
                 theme={isDark ? 'dark' : 'light'}
                 language="zh-CN"
                 showCodeRowNumber

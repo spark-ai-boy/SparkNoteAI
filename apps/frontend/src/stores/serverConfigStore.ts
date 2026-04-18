@@ -69,7 +69,7 @@ const checkVersionCompatibility = (
   serverVersion: string
 ): VersionCompatibility => {
 
-  if (serverVersion == 'dev') {
+  if (serverVersion.includes('dev')) {
     return {
       compatible: true,
       message: `版本兼容 - 客户端 v${clientVersion} / 服务器 v${serverVersion}`,
@@ -152,7 +152,7 @@ export const useServerConfigStore = create<ServerConfigState>((set, get) => ({
     const stored = getStoredConfig();
     if (stored?.baseUrl) {
       set({ baseUrl: stored.baseUrl, isLoading: false });
-      // 更新 API 客户端的 baseURL
+      // 同步更新 apiClient 的 baseURL
       apiClient.defaults.baseURL = stored.baseUrl + '/api';
     } else {
       set({ isLoading: false });

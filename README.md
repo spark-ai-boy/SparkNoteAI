@@ -97,25 +97,31 @@ cd SparkNoteAI
 ### 2. 配置环境变量
 
 ```bash
-cp docker/.env.example docker/.env.production
+cd docker
+cp .env.example .env
 ```
 
-编辑 `docker/.env.production`，修改以下必填项：
+编辑 `.env`，修改以下必填项：
 
 | 变量 | 说明 |
 |------|------|
+| `APP_VERSION` | 版本号 |
+| `POSTGRES_USER` | 数据库用户名 |
 | `POSTGRES_PASSWORD` | 数据库密码 |
+| `POSTGRES_DB` | 数据库名 |
 | `REDIS_PASSWORD` | Redis 密码 |
 | `NEO4J_PASSWORD` | Neo4j 密码 |
 | `SECRET_KEY` | JWT 密钥（`openssl rand -hex 32` 生成） |
 | `ENCRYPTION_KEY` | 加密密钥（`openssl rand -base64 32` 生成） |
-| `CORS_ORIGINS` | 允许的前端域名 |
+| `COMPATIBLE_CLIENT_VERSIONS` | 兼容的客户端列表 |
+| `ADMIN_USERNAME` | 管理员账号 |
 | `ADMIN_PASSWORD` | 管理员密码 |
+| `ADMIN_EMAIL` | 管理员邮箱 |
 
 ### 3. 启动服务
 
 ```bash
-./docker/deploy.sh start
+docker compose up -d
 ```
 
 部署脚本会自动启动所有服务并初始化数据库。
@@ -129,18 +135,6 @@ cp docker/.env.example docker/.env.production
 | Swagger UI | http://your-server-ip:8000/docs |
 
 默认管理员账号：`admin` / 你在配置中设置的密码
-
-### 常用运维命令
-
-```bash
-./docker/deploy.sh status     # 查看服务状态
-./docker/deploy.sh logs       # 查看所有日志
-./docker/deploy.sh logs backend  # 查看后端日志
-./docker/deploy.sh backup     # 备份数据库
-./docker/deploy.sh stop       # 停止服务
-./docker/deploy.sh restart    # 重启服务
-./docker/deploy.sh clean      # 清理所有资源（含数据卷）
-```
 
 # 💻 开发指南
 
@@ -218,6 +212,22 @@ npm run docker:dev:down       # 停止基础设施
 npm run electron:build:mac    # 构建桌面应用（macOS）
 npm run electron:build:win    # 构建桌面应用（Windows）
 ```
+
+# ⚠️ 免责声明
+
+1. **使用风险自负**：使用本项目的风险完全由使用者自行承担。因使用本项目而导致的任何数据丢失、系统故障、业务中断或其他损害，项目作者及贡献者不承担任何责任。
+
+2. **数据安全责任**：使用者应自行负责其存储的数据安全，包括但不限于：妥善保管 JWT 密钥（SECRET_KEY）、加密密钥（ENCRYPTION_KEY）、数据库密码及第三方 API Key。建议定期备份数据库，并在生产环境中启用 HTTPS。
+
+3. **第三方服务风险**：本项目支持接入第三方 LLM（如 OpenAI、Anthropic 等）和图床服务。使用者应自行评估第三方服务的安全性、隐私政策和合规性。因第三方服务导致的数据泄露、内容审查或其他问题，本项目不承担责任。
+
+4. **内容合规**：使用者通过本项目存储、处理和展示的内容（包括笔记、导入的碎片化内容、知识图谱等）需遵守当地法律法规，不得用于违法用途。因内容违规导致的任何法律责任由使用者自行承担。
+
+5. **非生产级保证**：本项目仍在持续开发迭代中，可能存在未发现的 Bug 或安全漏洞。建议在部署到生产环境前进行充分的安全审计和测试。
+
+6. **开源许可证**：本项目采用 AGPL-3.0 许可证。使用者需遵守许可证要求，特别是通过网络提供服务的修改版本也必须以相同许可证开放源码。
+
+---
 
 # 👥 社区
 

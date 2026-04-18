@@ -66,7 +66,7 @@ class AnthropicProvider(LLMProvider):
                         "max_tokens": 1,
                         "messages": [{"role": "user", "content": "Hi"}],
                     },
-                    timeout=10.0
+                    timeout=30.0
                 )
                 if response.status_code == 404:
                     return False, f"模型 '{model}' 不存在"

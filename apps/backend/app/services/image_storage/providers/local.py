@@ -1,13 +1,11 @@
 # 本地存储 Provider
 
 import os
-import shutil
 from typing import Dict, Any, Tuple
 from datetime import datetime
 
 from app.core.logger import get_logger
 from ..base_provider import ImageStorageProvider, ConfigField
-from ....core.config import settings
 
 logger = get_logger(__name__)
 
@@ -76,15 +74,10 @@ class LocalStorageProvider(ImageStorageProvider):
         with open(file_path, "wb") as f:
             f.write(file_data)
 
-        # 返回访问 URL（相对路径，前端会自动拼接 API 地址）
+        # 返回访问 URL（相对路径，由 Nginx 代理或前端自动补全）
         relative_path = os.path.join(relative_dir, unique_filename)
         url_path = f"{self.base_url}/{relative_path.replace(os.sep, '/')}"
-
-        # 返回完整 URL（包含 API_BASE_URL）
-        api_base_url = settings.API_BASE_URL.rstrip("/")
-        full_url = f"{api_base_url}{url_path}"
-        logger.debug(f"本地存储-图片上传成功: url={full_url}")
-        return full_url
+        return url_path
 
     async def delete(self, url: str) -> bool:
         """删除本地文件"""

@@ -8,6 +8,7 @@ import {
   updateImageStorageIntegration,
   deleteImageStorageIntegration,
   setDefaultImageStorage,
+  unsetDefaultImageStorage,
   testImageStorageConnection,
   testImageStorageConnectionTemp,
   getImageStorageProviders,
@@ -40,6 +41,7 @@ interface ImageStorageState {
   updateConfig: (configKey: string, data: UpdateImageStorageRequest) => Promise<ImageStorageIntegration>;
   deleteConfig: (configKey: string) => Promise<void>;
   setDefault: (configKey: string) => Promise<void>;
+  unsetDefault: (configKey: string) => Promise<void>;
   testConnection: (configKey: string) => Promise<ImageStorageTestResult>;
   testConnectionTemp: (data: TestImageStorageRequest) => Promise<ImageStorageTestResult>;
   clearError: () => void;
@@ -165,6 +167,23 @@ export const useImageStorageStore = create<ImageStorageState>((set, get) => ({
       set({ isSaving: false });
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || '设置默认配置失败';
+      set({
+        error: errorMessage,
+        isSaving: false,
+      });
+      throw new Error(errorMessage);
+    }
+  },
+
+  unsetDefault: async (configKey: string) => {
+    set({ isSaving: true, error: null });
+    try {
+      await unsetDefaultImageStorage(configKey);
+      // 刷新配置列表
+      await get().fetchConfigs();
+      set({ isSaving: false });
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.detail || '取消默认配置失败';
       set({
         error: errorMessage,
         isSaving: false,

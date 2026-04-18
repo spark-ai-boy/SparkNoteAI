@@ -33,8 +33,8 @@ class AliyunProvider(LLMProvider):
             type="url",
             required=False,
             description="可选，用于代理或私有化部署",
-            placeholder="https://dashscope.aliyuncs.com/api/v1",
-            default="https://dashscope.aliyuncs.com/api/v1"
+            placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1",
+            default="https://dashscope.aliyuncs.com/compatible-mode/v1"
         ),
     ]
 
@@ -64,60 +64,70 @@ class AliyunProvider(LLMProvider):
         model = self.config.get("model") or "qwen-turbo"
 
         try:
-            base_url = self.get_base_url() or "https://dashscope.aliyuncs.com/api/v1"
+            base_url = self.get_base_url() or "https://dashscope.aliyuncs.com/compatible-mode/v1"
+            base_url = base_url.rstrip("/")
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    f"{base_url}/services/aigc/text-generation/generation",
+                    f"{base_url}/chat/completions",
                     headers={
                         "Authorization": f"Bearer {api_key}",
                         "Content-Type": "application/json",
                     },
                     json={
                         "model": model,
-                        "input": {"messages": [{"role": "user", "content": "Hi"}]},
-                        "parameters": {"max_tokens": 1},
+                        "messages": [{"role": "user", "content": "Hi"}],
+                        "max_tokens": 1,
                     },
-                    timeout=10.0
+                    timeout=30.0
                 )
-                # 解析响应体
-                data = response.json()
 
-                # 阿里云返回 200 但可能包含错误码
+                # 先尝试解析 JSON（非 200 时可能为空体或 HTML）
+                try:
+                    data = response.json()
+                except Exception:
+                    # 响应体不是 JSON，说明服务器返回了非标准错误
+                    if response.status_code == 401:
+                        return False, "API Key 无效"
+                    elif response.status_code == 404:
+                        return False, f"接口不存在，请检查 Base URL"
+                    elif response.status_code == 429:
+                        return False, "请求过于频繁（Rate Limit）"
+                    else:
+                        return False, f"HTTP 错误：{response.status_code}，服务器未返回有效 JSON"
+
+                # 成功响应
                 if response.status_code == 200:
-                    # 检查是否有错误码
-                    if data.get('code'):
-                        error_code = data.get('code')
-                        error_msg = data.get('message', '未知错误')
-                        if error_code in ['InvalidParameter', 'ModelNotFound', 'InvalidModel', 'InvalidTaskModel']:
-                            return False, f"模型 '{model}' 不存在或无效 ({error_msg})"
-                        elif error_code == 'InvalidApiKey':
-                            return False, "API Key 无效"
-                        elif error_code == 'QuotaExhausted':
-                            # 配额用完，但 API Key 和模型名是正确的
-                            return True, "API Key 验证成功（但配额已用完）"
+                    if data.get('error'):
+                        error_msg = data['error'].get('message', '未知错误')
+                        error_code = data['error'].get('code', '')
+                        if 'not found' in error_msg.lower() or error_code in ('model_not_found', 'invalid_model'):
+                            return False, f"模型 '{model}' 不存在或无效"
+                        elif 'invalid' in error_msg.lower() or 'api' in error_msg.lower():
+                            return False, f"API Key 无效"
                         else:
-                            # 其他错误码，返回详细信息便于调试
-                            return False, f"验证失败 ({error_code}): {error_msg}"
-                    # 成功响应
+                            return False, f"验证失败: {error_msg}"
                     return True, "连接成功"
                 elif response.status_code == 401:
                     return False, "API Key 无效"
                 elif response.status_code == 404:
-                    return False, f"模型 '{model}' 不存在"
+                    return False, f"模型 '{model}' 不存在或接口路径有误"
+                elif response.status_code == 429:
+                    return False, "请求过于频繁（Rate Limit）"
                 else:
-                    # 其他 HTTP 错误，返回详细信息
-                    return False, f"HTTP 错误：{response.status_code}"
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code == 401:
-                return False, "API Key 无效"
-            return False, f"HTTP 错误: {e.response.status_code}"
+                    error_msg = data.get('error', {}).get('message', '未知错误')
+                    return False, f"HTTP 错误：{response.status_code} — {error_msg}"
+        except httpx.ConnectError:
+            return False, "无法连接到服务器，请检查网络或 Base URL"
+        except httpx.TimeoutException:
+            return False, "连接超时，请检查网络"
         except Exception as e:
             return False, f"连接失败: {str(e)}"
 
     async def generate(self, prompt: str, model: str, system_prompt: str = None, temperature: float = 0.7) -> str:
         """生成文本"""
         api_key = self.get_api_key()
-        base_url = self.get_base_url() or "https://dashscope.aliyuncs.com/api/v1"
+        base_url = self.get_base_url() or "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        base_url = base_url.rstrip("/")
 
         messages = []
         if system_prompt:
@@ -126,27 +136,54 @@ class AliyunProvider(LLMProvider):
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{base_url}/services/aigc/text-generation/generation",
+                f"{base_url}/chat/completions",
                 headers={
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json",
                 },
                 json={
                     "model": model,
-                    "input": {"messages": messages},
-                    "parameters": {"max_tokens": 2000, "temperature": temperature},
+                    "messages": messages,
+                    "max_tokens": 2000,
+                    "temperature": temperature,
                 },
                 timeout=60.0
             )
             response.raise_for_status()
-            data = response.json()
 
-            # 阿里云返回格式可能不同
-            if 'output' in data and 'text' in data['output']:
-                return data['output']['text']
-            elif 'choices' in data and len(data['choices']) > 0:
-                return data['choices'][0]['message']['content']
-            raise ValueError("无法从响应中提取内容")
+            # 检查响应体是否为空
+            if not response.content:
+                raise ValueError(f"API 返回空响应 (status={response.status_code})")
+
+            try:
+                data = response.json()
+            except json.JSONDecodeError:
+                raise ValueError(f"API 返回非 JSON 响应: {response.content[:200].decode('utf-8', errors='replace')}")
+
+            # OpenAI 兼容格式
+            if 'choices' in data and len(data['choices']) > 0:
+                choice = data['choices'][0]
+                content = choice.get('message', {}).get('content', '')
+                if not content:
+                    # 检查是否有错误
+                    error = choice.get('message', {}).get('refusal', '')
+                    if error:
+                        raise ValueError(f"模型拒绝响应: {error}")
+                    finish_reason = choice.get('finish_reason', '')
+                    if finish_reason:
+                        logger.warning(f"LLM 响应 finish_reason={finish_reason}")
+                    # 如果内容为空但响应成功，记录详细日志
+                    if not error and not finish_reason:
+                        logger.warning(f"LLM 返回空内容: model={model}, response={json.dumps(data, ensure_ascii=False)[:500]}")
+                    raise ValueError(f"LLM 返回空内容 (finish_reason={finish_reason or 'none'})")
+                return content
+            elif 'output' in data and 'text' in data['output']:
+                text = data['output']['text']
+                if not text:
+                    logger.warning(f"LLM 返回空文本: model={model}, response={json.dumps(data, ensure_ascii=False)[:500]}")
+                    raise ValueError("LLM 返回空文本")
+                return text
+            raise ValueError(f"无法从响应中提取内容: {json.dumps(data, ensure_ascii=False)[:200]}")
 
     async def generate_stream(
         self,
@@ -157,7 +194,8 @@ class AliyunProvider(LLMProvider):
     ) -> AsyncGenerator[str, None]:
         """流式生成"""
         api_key = self.get_api_key()
-        base_url = self.get_base_url() or "https://dashscope.aliyuncs.com/api/v1"
+        base_url = self.get_base_url() or "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        base_url = base_url.rstrip("/")
 
         msg_list = []
         if system_prompt:
@@ -167,43 +205,38 @@ class AliyunProvider(LLMProvider):
         async with httpx.AsyncClient() as client:
             async with client.stream(
                 "POST",
-                f"{base_url}/services/aigc/text-generation/generation",
+                f"{base_url}/chat/completions",
                 headers={
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json",
-                    "X-DashScope-SSE": "enable",  # 启用 SSE
                 },
                 json={
                     "model": model,
-                    "input": {"messages": msg_list},
-                    "parameters": {"max_tokens": 2000, "temperature": temperature, "incremental_output": True},
+                    "messages": msg_list,
+                    "max_tokens": 2000,
+                    "temperature": temperature,
                     "stream": True,
                 },
                 timeout=60.0
             ) as response:
                 response.raise_for_status()
                 async for line in response.aiter_lines():
-                    # 阿里云 SSE 格式：data:{"output":{"text":"..."}}
                     if not line.startswith("data:"):
                         continue
-                    data = line[5:].strip()  # 去掉 "data:" 前缀
+                    data = line[5:].strip()
                     if not data or data == "[DONE]":
                         continue
                     try:
                         chunk = json.loads(data)
-                        # 检查是否有错误
-                        if chunk.get('code'):
-                            error_msg = chunk.get('message', '未知错误')
-                            yield f"[ERROR: {error_msg}]"
-                            break
-                        # 提取文本内容
-                        if 'output' in chunk and 'text' in chunk['output']:
-                            content = chunk['output']['text']
-                            if content:
-                                yield content
-                        elif 'choices' in chunk and len(chunk['choices']) > 0:
+                        # OpenAI 兼容格式
+                        if 'choices' in chunk and len(chunk['choices']) > 0:
                             delta = chunk['choices'][0].get('delta', {})
                             content = delta.get('content', '')
+                            if content:
+                                yield content
+                        # 阿里云原生格式（兼容旧接口）
+                        elif 'output' in chunk and 'text' in chunk['output']:
+                            content = chunk['output']['text']
                             if content:
                                 yield content
                     except json.JSONDecodeError as e:

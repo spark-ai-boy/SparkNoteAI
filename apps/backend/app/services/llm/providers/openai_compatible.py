@@ -56,7 +56,7 @@ class OpenAICompatibleProvider(LLMProvider):
                 response = await client.get(
                     f"{base_url}/models",
                     headers={"Authorization": f"Bearer {api_key}"},
-                    timeout=10.0
+                    timeout=30.0
                 )
                 response.raise_for_status()
                 return True, "连接成功"

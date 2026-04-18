@@ -74,7 +74,7 @@ class AnthropicCompatibleProvider(LLMProvider):
                     f"{base_url}/messages",
                     headers=headers,
                     json=data,
-                    timeout=10.0
+                    timeout=30.0
                 )
                 if response.status_code == 401:
                     return False, "API Key 无效"

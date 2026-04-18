@@ -141,7 +141,7 @@ class KnowledgeGraphFeatureConfig(FeatureConfig):
             label="实体数量",
             type="number",
             required=False,
-            default=10,
+            default=3,
             group="extraction",
             description="每篇笔记提取的最大实体数量",
         ),
@@ -157,7 +157,7 @@ class KnowledgeGraphFeatureConfig(FeatureConfig):
     ]
 
     default_config = {
-        "entity_count": 10,
+        "entity_count": 3,
         "temperature": 0.3,
         "auto_incremental_update": True,
     }
@@ -270,7 +270,7 @@ class NotesFeatureConfig(FeatureConfig):
             label="摘要最大长度",
             type="number",
             required=False,
-            default=500,
+            default=200,
             group="content_summary",
             description="生成摘要的最大字数",
         ),
@@ -305,7 +305,7 @@ class NotesFeatureConfig(FeatureConfig):
     default_config = {
         "auto_summarize": True,
         "auto_extract_tags": False,
-        "summary_max_length": 500,
+        "summary_max_length": 200,
         "extract_tags_count": 3,
         "temperature": 0.5,
         "storage_config_id": None,

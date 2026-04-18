@@ -90,7 +90,7 @@ class OpenAIProvider(LLMProvider):
                 response = await client.get(
                     f"{base_url}/models",
                     headers={"Authorization": f"Bearer {api_key}"},
-                    timeout=10.0
+                    timeout=30.0
                 )
                 response.raise_for_status()
 
@@ -106,7 +106,7 @@ class OpenAIProvider(LLMProvider):
                             "messages": [{"role": "user", "content": "Hi"}],
                             "max_tokens": 1,
                         },
-                        timeout=10.0
+                        timeout=30.0
                     )
                     # 解析响应体检查错误
                     try:

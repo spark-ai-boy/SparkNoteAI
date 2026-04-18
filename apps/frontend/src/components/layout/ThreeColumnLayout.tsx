@@ -25,11 +25,7 @@ import { useNoteStore } from '../../stores/noteStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useKnowledgeGraphStore } from '../../stores/knowledgeGraphStore';
 import { Note as NoteType } from '../../api/note';
-
-// 转换图片 URL 函数，保持相对路径（生产环境同源）
-const transformImageUrl = (src: string, _baseUrl?: string): string => {
-  return src;
-};
+import { transformImageUrl } from '../../utils/imageUrlTransform';
 
 // 知识图谱链接类型
 interface GraphLink {
@@ -294,6 +290,21 @@ export const ThreeColumnLayout: React.FC = () => {
   useEffect(() => {
     loadFragments();
   }, []);
+
+  // Web 端页面标题
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      ai: 'AI 助手',
+      graph: '知识图谱',
+      note: '我的笔记',
+      import: '导入',
+      all: '全部知识',
+      tasks: '后台任务',
+      settings: '设置',
+    };
+    const title = titles[activeTab] || 'SparkNoteAI';
+    document.title = `${title} - SparkNoteAI`;
+  }, [activeTab]);
 
   // 加载标签（启动时获取一次）
   useEffect(() => {

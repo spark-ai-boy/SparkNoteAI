@@ -66,6 +66,7 @@ export const ImageStorageConfigManager: React.FC<ImageStorageConfigManagerProps>
     deleteConfig,
     testConnectionTemp,
     setDefault,
+    unsetDefault,
   } = useImageStorageStore();
 
   const { fetchSchemas: fetchFeatureSchemas } = useFeatureConfigStore();
@@ -126,6 +127,18 @@ export const ImageStorageConfigManager: React.FC<ImageStorageConfigManagerProps>
     } catch (error) {
       console.error('设置默认配置失败:', error);
       showFeedback('error', '设置默认配置失败');
+    }
+  };
+
+  // 处理取消默认
+  const handleUnsetDefault = async (configKey: string) => {
+    try {
+      await unsetDefault(configKey);
+      showFeedback('success', '已取消默认存储配置');
+      await fetchFeatureSchemas();
+    } catch (error) {
+      console.error('取消默认配置失败:', error);
+      showFeedback('error', '取消默认配置失败');
     }
   };
 
@@ -263,7 +276,17 @@ export const ImageStorageConfigManager: React.FC<ImageStorageConfigManagerProps>
 
           {/* 右侧：操作按钮 */}
           <View style={styles.configCardRight}>
-            {!config.is_default && (
+            {config.is_default ? (
+              <TouchableOpacity
+                style={[styles.cancelDefaultButton, { borderColor: colors.border }]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleUnsetDefault(config.config_key);
+                }}
+              >
+                <Text style={[styles.cancelDefaultText, { color: colors.textSecondary }]}>取消默认</Text>
+              </TouchableOpacity>
+            ) : (
               <TouchableOpacity
                 style={[styles.cardActionButton, { backgroundColor: colors.background }]}
                 onPress={(e) => {
@@ -575,6 +598,7 @@ export const ImageStorageConfigManager: React.FC<ImageStorageConfigManagerProps>
       <View style={[styles.header, { backgroundColor: colors.textSecondary + '10' }]}>
         <Text style={[styles.title, { color: colors.text }]}>图片存储配置</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>默认使用本地存储，可配置第三方图床进行 CDN 加速</Text>
+        <Text style={[styles.hint, { color: colors.textSecondary }]}>如果在场景配置中没有设置任何图床，将使用默认图床。如果没有默认图床，图片将直接存储在服务器上。</Text>
       </View>
 
       {/* 操作栏 */}
@@ -701,6 +725,12 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     lineHeight: 20,
+  },
+  hint: {
+    fontSize: 12,
+    marginTop: spacing.xs,
+    lineHeight: 18,
+    fontStyle: 'italic',
   },
   addButton: {
     flexDirection: 'row',
@@ -837,6 +867,16 @@ const styles = StyleSheet.create({
   cardActionButton: {
     padding: spacing.sm,
     borderRadius: 8,
+  },
+  cancelDefaultButton: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  cancelDefaultText: {
+    fontSize: 11,
+    fontWeight: '500',
   },
   // Modal styles
   modalOverlay: {

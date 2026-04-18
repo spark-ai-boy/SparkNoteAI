@@ -19,6 +19,7 @@ import { spacing, fontFamily } from '../../theme';
 import { useWebTheme } from '../../hooks/useWebTheme';
 import { useServerConfigStore } from '../../stores/serverConfigStore';
 import { useAuthStore } from '../../stores/authStore';
+import apiClient from '../../api/client';
 
 export const ServerInfoView: React.FC = () => {
   const colors = useWebTheme();
@@ -41,14 +42,8 @@ export const ServerInfoView: React.FC = () => {
 
   const fetchServerVersion = async () => {
     try {
-      const axios = require('axios').default;
-      const { baseUrl } = useServerConfigStore.getState();
-      const apiBaseUrl = baseUrl.endsWith('/api') ? baseUrl : baseUrl + '/api';
-      const testClient = axios.create({
-        baseURL: apiBaseUrl,
-        timeout: 5000,
-      });
-      const response = await testClient.get('/version');
+      // 使用主 API 客户端（生产环境走相对路径 /api）
+      const response = await apiClient.get('/version');
       if (response.data) {
         useServerConfigStore.setState({
           serverInfo: {

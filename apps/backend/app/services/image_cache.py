@@ -35,15 +35,22 @@ class ImageCacheService:
                 FeatureSetting.feature_id == "notes"
             ).first()
 
-            if feature_setting and not feature_setting.use_default_storage:
+            # 只要 integration_refs 中明确指定了 storage key，就优先使用
+            storage_key = None
+            if feature_setting and feature_setting.integration_refs:
                 storage_key = feature_setting.integration_refs.get("storage")
-                if storage_key:
-                    integration = self.db.query(Integration).filter(
-                        Integration.user_id == self.user_id,
-                        Integration.integration_type == "storage",
-                        Integration.config_key == storage_key,
-                        Integration.is_enabled == True
-                    ).first()
+
+            logger.info(f"图片存储查询: user_id={self.user_id}, feature_setting_exists={feature_setting is not None}, integration_refs={feature_setting.integration_refs if feature_setting else None}, storage_key={storage_key}")
+
+            if storage_key:
+                integration = self.db.query(Integration).filter(
+                    Integration.user_id == self.user_id,
+                    Integration.integration_type == "storage",
+                    Integration.config_key == storage_key,
+                    Integration.is_enabled == True
+                ).first()
+                if integration:
+                    logger.info(f"图片存储命中: user_id={self.user_id}, config_key={storage_key}, provider={integration.provider}")
 
             # 2. 使用默认配置
             if not integration:
@@ -120,18 +127,32 @@ class ImageCacheService:
         # 上传
         cached_url = await storage.upload(image_data, filename)
 
-        # 记录缓存
-        cache_record = ImageCache(
-            original_url=original_url,
-            cached_url=cached_url,
-            storage_type=storage.provider_id,
-            file_path=filename,
-            file_size=len(image_data),
-            mime_type=content_type,
-            user_id=self.user_id,
-        )
-        self.db.add(cache_record)
-        self.db.commit()
+        # 记录缓存（使用 PostgreSQL INSERT ... ON CONFLICT DO NOTHING 处理唯一键冲突）
+        try:
+            from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+            stmt = pg_insert(ImageCache).values(
+                original_url=original_url,
+                cached_url=cached_url,
+                storage_type=storage.provider_id,
+                file_path=filename,
+                file_size=len(image_data),
+                mime_type=content_type,
+                user_id=self.user_id,
+            ).on_conflict_do_nothing(index_elements=["original_url"])
+
+            self.db.execute(stmt)
+            self.db.flush()
+        except Exception:
+            # 兜底：查询已有记录
+            cached = (
+                self.db.query(ImageCache)
+                .filter_by(original_url=original_url)
+                .first()
+            )
+            if cached:
+                return cached.cached_url
+            raise
 
         return cached_url
 

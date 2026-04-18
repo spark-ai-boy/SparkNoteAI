@@ -111,6 +111,7 @@ class ImportTaskHandler(TaskHandler):
                         db.commit()
             except Exception as e:
                 logger.error(f"导入任务生成摘要失败: task_id={task_id}, user_id={user_id}, error={e}")
+                db.rollback()  # 重置 session 状态，避免后续操作触发 PendingRollbackError
 
             # 注意：不再将平台原始标签（如小红书的 #话题）创建为系统标签
             # 这些标签已保留在笔记内容的 markdown 中，供展示用
@@ -138,6 +139,7 @@ class ImportTaskHandler(TaskHandler):
                             db.commit()
             except Exception as e:
                 logger.error(f"导入任务自动提取标签失败: task_id={task_id}, user_id={user_id}, error={e}")
+                db.rollback()
 
             await progress_callback(90, "正在更新知识图谱...")
 
