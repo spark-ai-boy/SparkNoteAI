@@ -90,11 +90,9 @@ jobs:
         include:
           - runner: macos-latest
             arch: arm64
-            electron_arch: arm64
             label: Apple Silicon
           - runner: macos-14
             arch: x64
-            electron_arch: x64
             label: Intel
 
     env:
@@ -137,7 +135,7 @@ jobs:
         run: |
           ulimit -n 65536
           cd apps/frontend
-          npx electron-builder --mac ${{ matrix.electron_arch }} --publish never
+          npx electron-builder --mac --${{ matrix.arch }} --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -152,8 +150,8 @@ jobs:
           draft: true
           generate_release_notes: true
           files: |
-            release/*-${{ matrix.arch }}-mac.zip
-            release/*-${{ matrix.arch }}.dmg
+            release/SparkNoteAI-*-${{ matrix.arch }}-Mac.dmg
+            release/SparkNoteAI-*-${{ matrix.arch }}-mac.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
