@@ -234,7 +234,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
               const type = node.type || node.node_type || '';
               const nodeColor = getNodeColor(type);
               const isHighlighted = highlightedNodeId && node.id !== highlightedNodeId;
-              const radius = 6;
+              const radius = 4;
 
               // 绘制节点圆点
               ctx.beginPath();
@@ -249,15 +249,15 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
 
               // 绘制文字标签
               if (label) {
-                ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                ctx.font = 'bold 8px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'top';
                 const textWidth = ctx.measureText(label).width;
-                const padding = 4;
+                const padding = 1;
                 const bgX = node.x - textWidth / 2 - padding;
                 const bgY = node.y + radius + 4;
                 const bgW = textWidth + padding * 2;
-                const bgH = 18;
+                const bgH = 10;
                 // 文字背景
                 ctx.fillStyle = colors.background + 'D0';
                 ctx.beginPath();
@@ -306,9 +306,9 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
               if (fgRef.current) {
                 const graph = fgRef.current;
                 // 增加电荷强度（负值越大，排斥力越强）
-                graph.d3Force('charge').strength(-500);
+                graph.d3Force('charge').strength(-3000);
                 // 增加链接距离
-                graph.d3Force('link').distance(200);
+                graph.d3Force('link').distance(1200);
               }
             }}
             width={dimensions.width}

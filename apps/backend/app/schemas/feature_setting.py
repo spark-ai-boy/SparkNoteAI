@@ -14,7 +14,7 @@ class FeatureSettingBase(BaseModel):
 
 class FeatureSettingUpdate(BaseModel):
     """更新场景配置请求"""
-    integration_refs: Optional[Dict[str, str]] = Field(
+    integration_refs: Optional[Dict[str, Optional[str]]] = Field(
         None,
         description="引用的集成配置，如{'llm': 'openai-prod', 'storage': 'local'}"
     )
@@ -26,7 +26,7 @@ class FeatureSettingUpdate(BaseModel):
 
 class FeatureSettingResponse(FeatureSettingBase):
     """场景配置响应"""
-    integration_refs: Dict[str, str] = Field(default={}, description="引用的集成配置")
+    integration_refs: Dict[str, Optional[str]] = Field(default={}, description="引用的集成配置")
     use_default_llm: bool = Field(default=True)
     use_default_storage: bool = Field(default=True)
     custom_settings: Dict[str, Any] = Field(default={})
@@ -40,7 +40,7 @@ class FeatureSettingResponse(FeatureSettingBase):
 class FeatureRuntimeConfigResponse(BaseModel):
     """功能运行时配置响应（合并后的完整配置）"""
     feature_id: str
-    integration_refs: Dict[str, str]
+    integration_refs: Dict[str, Optional[str]]
     custom_settings: Dict[str, Any]
     llm_config: Optional[Dict[str, Any]] = Field(None, description="有效的 LLM 配置")
     storage_config: Optional[Dict[str, Any]] = Field(None, description="有效的存储配置")

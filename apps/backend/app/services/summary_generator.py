@@ -49,9 +49,43 @@ def get_llm_for_user(db: Session, user_id: int) -> Optional[Integration]:
     ).first()
 
 
+def strip_markdown(content: str) -> str:
+    """移除 markdown 语法，返回纯文本"""
+    text = content
+    # 移除代码块
+    text = re.sub(r'```[\s\S]*?```', '', text)
+    text = re.sub(r'`[^`]+`', '', text)
+    # 移除图片语法 ![alt](url)
+    text = re.sub(r'!\[.*?\]\(.*?\)', '', text)
+    # 移除链接语法 [text](url)
+    text = re.sub(r'\[.*?\]\(.*?\)', '', text)
+    # 移除粗体/斜体标记
+    text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+    text = re.sub(r'\*(.+?)\*', r'\1', text)
+    text = re.sub(r'__(.+?)__', r'\1', text)
+    text = re.sub(r'_(.+?)_', r'\1', text)
+    # 移除标题标记
+    text = re.sub(r'^#{1,6}\s*', '', text, flags=re.MULTILINE)
+    # 移除引用标记
+    text = re.sub(r'^>\s*', '', text, flags=re.MULTILINE)
+    # 移除列表标记
+    text = re.sub(r'^[\s]*[-*+]\s*', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^[\s]*\d+\.\s+', '', text, flags=re.MULTILINE)
+    # 移除水平线
+    text = re.sub(r'^[\s]*[-*_]{3,}\s*$', '', text, flags=re.MULTILINE)
+    # 清理多余空白
+    text = re.sub(r'\n{3,}', '\n\n', text).strip()
+    return text
+
+
 def extract_meaningful_text(content: str) -> str:
     """从 HTML 内容中提取有意义的纯文本，跳过链接、图片、脚本等"""
     text = content
+
+    # 0. 如果是 markdown 内容（不含 HTML 标签），先移除 markdown 语法
+    if '<' not in text[:200]:
+        text = strip_markdown(text)
+        return re.sub(r'\n+', ' ', text).strip()
 
     # 1. 移除 <script>、<style>、<nav>、<footer>、<header> 及其内容
     text = re.sub(r'<script[^>]*>.*?</script>', '', text, flags=re.IGNORECASE | re.DOTALL)
@@ -155,6 +189,11 @@ async def generate_summary_with_llm(
         )
 
         result = summary.strip() if summary else None
+
+        # 强制截断到 max_length，确保不超过数据库 varchar(500) 限制
+        if result and len(result) > max_length:
+            result = result[:max_length].rstrip() + "..."
+
         logger.info(f"LLM 摘要生成成功: provider={provider_id}, model={model}, length={len(result) if result else 0}")
         return result
     except Exception as e:
@@ -190,7 +229,7 @@ async def generate_summary(
     custom = notes_feature.custom_settings if notes_feature else {}
     temperature = custom.get("temperature", 0.5)
     if max_length is None:
-        max_length = custom.get("summary_max_length", 500)
+        max_length = custom.get("summary_max_length", 200)
 
     # 尝试使用 LLM 生成
     integration = get_llm_for_user(db, user_id)
@@ -200,6 +239,9 @@ async def generate_summary(
             content, integration, temperature=temperature, max_length=max_length
         )
         if summary:
+            # 最终安全检查：强制截断，确保不超过数据库 varchar 限制
+            if len(summary) > max_length:
+                summary = summary[:max_length].rstrip() + "..."
             return summary
         logger.warning(f"LLM 摘要返回空，回退到截断模式: user_id={user_id}")
 

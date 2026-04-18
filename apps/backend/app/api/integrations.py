@@ -364,3 +364,33 @@ def set_default_integration(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e)
         )
+
+
+@router.post("/{integration_type}/{config_key}/unset-default")
+def unset_default_integration(
+    integration_type: str,
+    config_key: str,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    """取消默认集成配置
+
+    示例:
+        POST /integrations/storage/lskypro-xxx/unset-default
+    """
+    service = IntegrationService(db)
+    try:
+        integration = service.unset_default_integration(
+            user_id=current_user.id,
+            integration_type=integration_type,
+            config_key=config_key
+        )
+        return {
+            "message": f"'{config_key}' 已取消默认{integration_type}配置",
+            "integration": integration.to_dict(include_config=False)
+        }
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )

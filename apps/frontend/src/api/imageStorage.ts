@@ -139,6 +139,12 @@ export const setDefaultImageStorage = async (configKey: string): Promise<ImageSt
   return response.data;
 };
 
+// 取消默认图片存储配置
+export const unsetDefaultImageStorage = async (configKey: string): Promise<ImageStorageIntegration> => {
+  const response = await client.post(`/integrations/storage/${configKey}/unset-default`);
+  return response.data;
+};
+
 // 测试图片存储连接（临时配置）
 export const testImageStorageConnectionTemp = async (data: TestImageStorageRequest): Promise<ImageStorageTestResult> => {
   const response = await client.post('/integrations/storage/test', {

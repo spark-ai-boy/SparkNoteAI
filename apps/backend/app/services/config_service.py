@@ -252,6 +252,23 @@ class IntegrationService:
 
         return integration
 
+    def unset_default_integration(
+        self,
+        user_id: int,
+        integration_type: str,
+        config_key: str
+    ) -> Integration:
+        """取消默认集成配置"""
+        integration = self.get_integration(user_id, integration_type, config_key)
+        if not integration:
+            raise ValueError(f"配置 '{config_key}' 不存在")
+
+        integration.is_default = False
+        self.db.commit()
+        self.db.refresh(integration)
+
+        return integration
+
     def _clear_default_flag(self, user_id: int, integration_type: str) -> None:
         """清除指定类型的默认标志"""
         self.db.query(Integration).filter(

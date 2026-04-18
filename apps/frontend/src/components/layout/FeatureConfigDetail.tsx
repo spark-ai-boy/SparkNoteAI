@@ -43,6 +43,12 @@ const ConfigFieldInput: React.FC<{
     field.placeholder ||
     '请选择...';
 
+  // 清空选择
+  const handleClear = () => {
+    onChange(null);
+    setShowSelectModal(false);
+  };
+
   // 渲染选择弹窗
   const renderSelectModal = () => (
     <Modal
@@ -94,6 +100,16 @@ const ConfigFieldInput: React.FC<{
                   {field.placeholder || '暂无可用选项'}
                 </Text>
               </View>
+            )}
+
+            {/* 清空按钮 */}
+            {displayValue && (
+              <TouchableOpacity
+                style={[styles.clearButton, { borderTopColor: colors.border }]}
+                onPress={handleClear}
+              >
+                <Text style={[styles.clearButtonText, { color: colors.error }]}>清空</Text>
+              </TouchableOpacity>
             )}
           </ScrollView>
         </View>
@@ -792,6 +808,17 @@ const styles = StyleSheet.create({
   emptyOptionsText: {
     fontSize: 14,
     fontStyle: 'italic',
+  },
+  clearButton: {
+    marginTop: spacing.xs,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
+    borderTopWidth: 1,
+    alignItems: 'center',
+  },
+  clearButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   // 底部样式
   footer: {

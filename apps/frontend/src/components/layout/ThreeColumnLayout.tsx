@@ -25,11 +25,7 @@ import { useNoteStore } from '../../stores/noteStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useKnowledgeGraphStore } from '../../stores/knowledgeGraphStore';
 import { Note as NoteType } from '../../api/note';
-
-// 转换图片 URL 函数，保持相对路径（生产环境同源）
-const transformImageUrl = (src: string, _baseUrl?: string): string => {
-  return src;
-};
+import { transformImageUrl } from '../../utils/imageUrlTransform';
 
 // 知识图谱链接类型
 interface GraphLink {

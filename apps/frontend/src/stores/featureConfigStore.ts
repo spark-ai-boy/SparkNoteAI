@@ -142,9 +142,8 @@ export const useFeatureConfigStore = create<FeatureConfigState>((set, get) => ({
         if (integrationRefFields.has(key)) {
           // 根据字段名推断 ref 类型：llm_config_id -> llm, storage_config_id -> storage
           const refType = key.replace('_config_id', '').replace('_integration', '');
-          if (value !== null && value !== undefined && value !== '') {
-            integrationRefs[refType] = value;
-          }
+          // null/空值也需要保留，以便后端清除旧的引用
+          integrationRefs[refType] = value || null;
         } else {
           customSettings[key] = value;
         }
