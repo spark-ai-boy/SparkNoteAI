@@ -38,25 +38,14 @@ export const ServerConfigDialog: React.FC<ServerConfigDialogProps> = ({
   } = useServerConfigStore();
 
   const [inputValue, setInputValue] = useState(baseUrl);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [selectedOption, setSelectedOption] = useState<'official' | 'localhost' | null>(null);
 
   useEffect(() => {
     if (visible) {
       setInputValue(baseUrl);
-      // 根据当前值设置选中状态
-      if (baseUrl === 'https://api.sparknoteai.com') {
-        setSelectedOption('official');
-      } else if (baseUrl === 'http://localhost:8000') {
-        setSelectedOption('localhost');
-      } else {
-        setSelectedOption(null);
-      }
     }
   }, [visible, baseUrl]);
 
   const handleTest = async () => {
-    // 测试前先将输入框的值同步到 store
     await setBaseUrl(inputValue);
     await testConnection();
   };
@@ -68,19 +57,6 @@ export const ServerConfigDialog: React.FC<ServerConfigDialogProps> = ({
       onClose();
     }
   };
-
-  const handleUseOfficial = () => {
-    setInputValue('https://api.sparknoteai.com');
-    setSelectedOption('official');
-  };
-
-  const handleUseLocalhost = () => {
-    setInputValue('http://localhost:8000');
-    setSelectedOption('localhost');
-  };
-
-  // 判断输入框是否应该禁用（选中官方服务器时禁用）
-  const isInputDisabled = selectedOption === 'official';
 
   return (
     <Modal
@@ -96,56 +72,8 @@ export const ServerConfigDialog: React.FC<ServerConfigDialogProps> = ({
             <ServerIcon size={28} color={colors.primary} />
             <Text style={[styles.title, { color: colors.text }]}>服务器配置</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              配置私有化部署的服务器地址，如无需修改可使用官方服务器
+              配置私有化部署的服务器地址
             </Text>
-          </View>
-
-          {/* 快捷选项 */}
-          <View style={styles.quickOptions}>
-            <TouchableOpacity
-              style={[
-                styles.quickOptionButton,
-                { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
-                selectedOption === 'official' && { backgroundColor: colors.primary, borderColor: colors.primary },
-              ]}
-              onPress={handleUseOfficial}
-            >
-              <CheckCircleIcon
-                size={16}
-                color={selectedOption === 'official' ? '#FFFFFF' : colors.textSecondary}
-              />
-              <Text
-                style={[
-                  styles.quickOptionText,
-                  { color: colors.text },
-                  selectedOption === 'official' && { color: '#FFFFFF', fontWeight: '600' },
-                ]}
-              >
-                使用官方服务器
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.quickOptionButton,
-                { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
-                selectedOption === 'localhost' && { backgroundColor: colors.primary, borderColor: colors.primary },
-              ]}
-              onPress={handleUseLocalhost}
-            >
-              <SettingsIcon
-                size={16}
-                color={selectedOption === 'localhost' ? '#FFFFFF' : colors.textSecondary}
-              />
-              <Text
-                style={[
-                  styles.quickOptionText,
-                  { color: colors.text },
-                  selectedOption === 'localhost' && { color: '#FFFFFF', fontWeight: '600' },
-                ]}
-              >
-                自定义服务器
-              </Text>
-            </TouchableOpacity>
           </View>
 
           {/* 服务器地址输入 */}
@@ -155,25 +83,15 @@ export const ServerConfigDialog: React.FC<ServerConfigDialogProps> = ({
               style={[
                 styles.input,
                 { backgroundColor: colors.backgroundSecondary, borderColor: colors.border, color: colors.text },
-                isInputDisabled && styles.inputDisabled,
               ]}
               value={inputValue}
-              onChangeText={(text) => {
-                if (!isInputDisabled) {
-                  setInputValue(text);
-                }
-              }}
-              placeholder="https://api.sparknoteai.com"
+              onChangeText={setInputValue}
+              placeholder="http://localhost:8000"
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="url"
               placeholderTextColor={colors.textTertiary}
-              editable={!isInputDisabled}
-              readOnly={isInputDisabled}
             />
-            {isInputDisabled && (
-              <Text style={[styles.inputHint, { color: colors.textSecondary }]}>官方服务器地址不可编辑，如需修改请使用自定义服务器</Text>
-            )}
           </View>
 
           {/* 测试结果显示 */}
@@ -182,7 +100,6 @@ export const ServerConfigDialog: React.FC<ServerConfigDialogProps> = ({
               style={[
                 styles.resultContainer,
                 { backgroundColor: compatibility.compatible ? colors.success + '10' : colors.error + '10' },
-                compatibility.compatible ? styles.resultSuccess : styles.resultError,
               ]}
             >
               {compatibility.compatible ? (
@@ -275,32 +192,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-  quickOptions: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  quickOptionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  quickOptionButtonActive: {
-  },
-  quickOptionText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  quickOptionTextActive: {
-    fontWeight: '600',
-  },
-  quickOptionTextSecondary: {
-  },
   section: {
     marginBottom: spacing.lg,
   },
@@ -316,13 +207,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.mono,
     borderWidth: 1,
   },
-  inputDisabled: {
-    opacity: 0.5,
-  },
-  inputHint: {
-    fontSize: 12,
-    marginTop: spacing.xs,
-  },
   resultContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -330,10 +214,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: spacing.md,
     marginBottom: spacing.lg,
-  },
-  resultSuccess: {
-  },
-  resultError: {
   },
   resultText: {
     flex: 1,

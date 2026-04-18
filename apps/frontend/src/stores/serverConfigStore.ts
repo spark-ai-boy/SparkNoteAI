@@ -68,6 +68,14 @@ const checkVersionCompatibility = (
   clientVersion: string,
   serverVersion: string
 ): VersionCompatibility => {
+
+  if (serverVersion == 'dev') {
+    return {
+      compatible: true,
+      message: `版本兼容 - 客户端 v${clientVersion} / 服务器 v${serverVersion}`,
+    };
+ }
+
   const client = parseVersion(clientVersion);
   const server = parseVersion(serverVersion);
 

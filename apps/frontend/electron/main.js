@@ -179,7 +179,7 @@ function createWindow() {
 
   // 阻止导航到外部链接
   mainWindow.webContents.on('will-navigate', (event, navigationContext) => {
-    // 忽略非标准 URL（如 devtools://、chrome-extension:// 等）
+    if (!navigationContext.url || typeof navigationContext.url !== 'string') return;
     if (!navigationContext.url.startsWith('http://') &&
         !navigationContext.url.startsWith('https://') &&
         !navigationContext.url.startsWith('file://')) {
@@ -221,7 +221,7 @@ app.on('window-all-closed', () => {
 // 阻止导航到外部链接
 app.on('web-contents-created', (event, contents) => {
   contents.on('will-navigate', (event, navigationContext) => {
-    // 忽略非标准 URL（如 devtools://、chrome-extension:// 等）
+    if (!navigationContext.url || typeof navigationContext.url !== 'string') return;
     if (!navigationContext.url.startsWith('http://') &&
         !navigationContext.url.startsWith('https://') &&
         !navigationContext.url.startsWith('file://')) {

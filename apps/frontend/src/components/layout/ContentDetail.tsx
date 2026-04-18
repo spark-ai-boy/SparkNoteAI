@@ -22,17 +22,9 @@ import { Note, Tag } from '../../api/note';
 import { MdPreview } from 'md-editor-rt';
 import 'md-editor-rt/lib/style.css';
 
-// 转换图片 URL 函数，将相对路径转换为完整 URL
-const transformImageUrl = (src: string, baseUrl: string): string => {
-  if (!src) return src;
-  // 如果已经是完整 URL，直接返回
-  if (src.startsWith('http://') || src.startsWith('https://')) {
-    return src;
-  }
-  // 相对路径，添加后端 URL 前缀
-  const fullUrl = `${baseUrl}${src}`;
-  console.log('[transformImageUrl] 转换图片 URL:', src, '->', fullUrl);
-  return fullUrl;
+// 转换图片 URL 函数，保持相对路径（生产环境同源）
+const transformImageUrl = (_src: string, _baseUrl?: string): string => {
+  return _src;
 };
 
 // 联合类型，支持 Fragment 和 Note

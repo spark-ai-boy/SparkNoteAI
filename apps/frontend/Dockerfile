@@ -56,11 +56,7 @@ LABEL version="${APP_VERSION}" \
 # 复制构建产物到 Nginx
 COPY --from=builder /app/apps/frontend/dist /usr/share/nginx/html
 
-# 复制运行时配置脚本
-COPY apps/frontend/nginx-entrypoint.sh /docker-entrypoint.d/99-runtime-config.sh
-RUN chmod +x /docker-entrypoint.d/99-runtime-config.sh
-
-# Nginx 配置 - 支持 API 反向代理
+# Nginx 配置 - 支持 API 反向代理和静态资源代理
 COPY apps/frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 # 暴露端口
