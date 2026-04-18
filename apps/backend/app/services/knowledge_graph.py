@@ -69,10 +69,8 @@ class KnowledgeGraphService:
         ).first()
 
         if feature_setting and feature_setting.custom_settings:
-            return FeatureConfigRegistry.merge_with_defaults(
-                "knowledge_graph",
-                feature_setting.custom_settings
-            )
+            feature_class = FeatureConfigRegistry.get_feature_class("knowledge_graph")
+            return feature_class.merge_with_defaults(feature_setting.custom_settings)
 
         return FeatureConfigRegistry.get_default_config("knowledge_graph")
 

@@ -33,8 +33,8 @@ class AliyunProvider(LLMProvider):
             type="url",
             required=False,
             description="可选，用于代理或私有化部署",
-            placeholder="https://dashscope.aliyuncs.com/api/v1",
-            default="https://dashscope.aliyuncs.com/api/v1"
+            placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1",
+            default="https://dashscope.aliyuncs.com/compatible-mode/v1"
         ),
     ]
 
@@ -64,7 +64,7 @@ class AliyunProvider(LLMProvider):
         model = self.config.get("model") or "qwen-turbo"
 
         try:
-            base_url = self.get_base_url() or "https://dashscope.aliyuncs.com/api/v1"
+            base_url = self.get_base_url() or "https://dashscope.aliyuncs.com/compatible-mode/v1"
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     f"{base_url}/services/aigc/text-generation/generation",
@@ -117,7 +117,7 @@ class AliyunProvider(LLMProvider):
     async def generate(self, prompt: str, model: str, system_prompt: str = None, temperature: float = 0.7) -> str:
         """生成文本"""
         api_key = self.get_api_key()
-        base_url = self.get_base_url() or "https://dashscope.aliyuncs.com/api/v1"
+        base_url = self.get_base_url() or "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
         messages = []
         if system_prompt:
@@ -157,7 +157,7 @@ class AliyunProvider(LLMProvider):
     ) -> AsyncGenerator[str, None]:
         """流式生成"""
         api_key = self.get_api_key()
-        base_url = self.get_base_url() or "https://dashscope.aliyuncs.com/api/v1"
+        base_url = self.get_base_url() or "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
         msg_list = []
         if system_prompt:
