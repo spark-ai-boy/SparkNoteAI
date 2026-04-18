@@ -35,15 +35,22 @@ class ImageCacheService:
                 FeatureSetting.feature_id == "notes"
             ).first()
 
-            if feature_setting and not feature_setting.use_default_storage:
+            # 只要 integration_refs 中明确指定了 storage key，就优先使用
+            storage_key = None
+            if feature_setting and feature_setting.integration_refs:
                 storage_key = feature_setting.integration_refs.get("storage")
-                if storage_key:
-                    integration = self.db.query(Integration).filter(
-                        Integration.user_id == self.user_id,
-                        Integration.integration_type == "storage",
-                        Integration.config_key == storage_key,
-                        Integration.is_enabled == True
-                    ).first()
+
+            logger.info(f"图片存储查询: user_id={self.user_id}, feature_setting_exists={feature_setting is not None}, integration_refs={feature_setting.integration_refs if feature_setting else None}, storage_key={storage_key}")
+
+            if storage_key:
+                integration = self.db.query(Integration).filter(
+                    Integration.user_id == self.user_id,
+                    Integration.integration_type == "storage",
+                    Integration.config_key == storage_key,
+                    Integration.is_enabled == True
+                ).first()
+                if integration:
+                    logger.info(f"图片存储命中: user_id={self.user_id}, config_key={storage_key}, provider={integration.provider}")
 
             # 2. 使用默认配置
             if not integration:

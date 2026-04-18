@@ -97,25 +97,31 @@ cd SparkNoteAI
 ### 2. 配置环境变量
 
 ```bash
-cp docker/.env.example docker/.env.production
+cd docker
+cp .env.example .env
 ```
 
-编辑 `docker/.env.production`，修改以下必填项：
+编辑 `.env`，修改以下必填项：
 
 | 变量 | 说明 |
 |------|------|
+| `APP_VERSION` | 版本号 |
+| `POSTGRES_USER` | 数据库用户名 |
 | `POSTGRES_PASSWORD` | 数据库密码 |
+| `POSTGRES_DB` | 数据库名 |
 | `REDIS_PASSWORD` | Redis 密码 |
 | `NEO4J_PASSWORD` | Neo4j 密码 |
 | `SECRET_KEY` | JWT 密钥（`openssl rand -hex 32` 生成） |
 | `ENCRYPTION_KEY` | 加密密钥（`openssl rand -base64 32` 生成） |
-| `CORS_ORIGINS` | 允许的前端域名 |
+| `COMPATIBLE_CLIENT_VERSIONS` | 兼容的客户端列表 |
+| `ADMIN_USERNAME` | 管理员账号 |
 | `ADMIN_PASSWORD` | 管理员密码 |
+| `ADMIN_EMAIL` | 管理员邮箱 |
 
 ### 3. 启动服务
 
 ```bash
-./docker/deploy.sh start
+docker compose up -d
 ```
 
 部署脚本会自动启动所有服务并初始化数据库。
@@ -129,18 +135,6 @@ cp docker/.env.example docker/.env.production
 | Swagger UI | http://your-server-ip:8000/docs |
 
 默认管理员账号：`admin` / 你在配置中设置的密码
-
-### 常用运维命令
-
-```bash
-./docker/deploy.sh status     # 查看服务状态
-./docker/deploy.sh logs       # 查看所有日志
-./docker/deploy.sh logs backend  # 查看后端日志
-./docker/deploy.sh backup     # 备份数据库
-./docker/deploy.sh stop       # 停止服务
-./docker/deploy.sh restart    # 重启服务
-./docker/deploy.sh clean      # 清理所有资源（含数据卷）
-```
 
 # 💻 开发指南
 

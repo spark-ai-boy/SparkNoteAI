@@ -8,11 +8,14 @@ from typing import Dict, Any, Optional, List, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
+from ..core.logger import get_logger
 from ..schemas.integration import IntegrationTestResponse
 
 from ..models.integration import Integration, FeatureSetting, UserPreference
 from ..models.user import User
 from ..utils.encryption import encrypt_api_key, decrypt_api_key
+
+logger = get_logger(__name__)
 
 
 class IntegrationService:
@@ -451,6 +454,12 @@ class FeatureSettingService:
 
         self.db.commit()
         self.db.refresh(setting)
+
+        # 验证：重新从数据库读取，确认 integration_refs 已持久化
+        from app.models.integration import FeatureSetting as FS
+        refreshed = self.db.query(FS).filter_by(user_id=user_id, feature_id=feature_id).first()
+        if refreshed:
+            logger.info(f"场景配置已更新: user_id={user_id}, feature_id={feature_id}, integration_refs={refreshed.integration_refs}, custom_settings={refreshed.custom_settings}")
 
         return setting
 

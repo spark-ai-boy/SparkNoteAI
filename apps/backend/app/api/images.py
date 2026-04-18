@@ -36,6 +36,8 @@ def _get_storage_provider(db: Session, user_id: int):
     if notes_feature and notes_feature.integration_refs:
         storage_config_id = notes_feature.integration_refs.get("storage")
 
+    logger.info(f"图片存储查询: user_id={user_id}, notes_feature_exists={notes_feature is not None}, integration_refs={notes_feature.integration_refs if notes_feature else None}, storage_config_id={storage_config_id}")
+
     if storage_config_id:
         integration = db.query(Integration).filter(
             Integration.user_id == user_id,
