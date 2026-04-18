@@ -81,7 +81,7 @@ class AzureOpenAIProvider(LLMProvider):
                         "messages": [{"role": "user", "content": "Hi"}],
                         "max_tokens": 1,
                     },
-                    timeout=10.0
+                    timeout=30.0
                 )
                 response.raise_for_status()
                 return True, "连接成功"

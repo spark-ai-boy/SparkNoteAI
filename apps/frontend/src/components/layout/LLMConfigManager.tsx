@@ -552,7 +552,7 @@ export const LLMConfigManager: React.FC<LLMConfigManagerProps> = ({ onClose }) =
                   disabled={isTestingLocal || (!formApiKey.trim() && !config?.has_api_key)}
                 >
                   {isTestingLocal ? (
-                    <ActivityIndicator size="small" color={colors.background} />
+                    <ActivityIndicator size="small" color={colors.text} />
                   ) : (
                     <>
                       <Text style={[
