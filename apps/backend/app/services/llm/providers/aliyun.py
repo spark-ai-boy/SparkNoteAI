@@ -150,14 +150,40 @@ class AliyunProvider(LLMProvider):
                 timeout=60.0
             )
             response.raise_for_status()
-            data = response.json()
+
+            # 检查响应体是否为空
+            if not response.content:
+                raise ValueError(f"API 返回空响应 (status={response.status_code})")
+
+            try:
+                data = response.json()
+            except json.JSONDecodeError:
+                raise ValueError(f"API 返回非 JSON 响应: {response.content[:200].decode('utf-8', errors='replace')}")
 
             # OpenAI 兼容格式
             if 'choices' in data and len(data['choices']) > 0:
-                return data['choices'][0]['message']['content']
+                choice = data['choices'][0]
+                content = choice.get('message', {}).get('content', '')
+                if not content:
+                    # 检查是否有错误
+                    error = choice.get('message', {}).get('refusal', '')
+                    if error:
+                        raise ValueError(f"模型拒绝响应: {error}")
+                    finish_reason = choice.get('finish_reason', '')
+                    if finish_reason:
+                        logger.warning(f"LLM 响应 finish_reason={finish_reason}")
+                    # 如果内容为空但响应成功，记录详细日志
+                    if not error and not finish_reason:
+                        logger.warning(f"LLM 返回空内容: model={model}, response={json.dumps(data, ensure_ascii=False)[:500]}")
+                    raise ValueError(f"LLM 返回空内容 (finish_reason={finish_reason or 'none'})")
+                return content
             elif 'output' in data and 'text' in data['output']:
-                return data['output']['text']
-            raise ValueError("无法从响应中提取内容")
+                text = data['output']['text']
+                if not text:
+                    logger.warning(f"LLM 返回空文本: model={model}, response={json.dumps(data, ensure_ascii=False)[:500]}")
+                    raise ValueError("LLM 返回空文本")
+                return text
+            raise ValueError(f"无法从响应中提取内容: {json.dumps(data, ensure_ascii=False)[:200]}")
 
     async def generate_stream(
         self,

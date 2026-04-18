@@ -1,6 +1,7 @@
 # 知识图谱服务 - 使用大模型提取概念和发现关系
 
 import json
+import re
 from typing import List, Dict, Any, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
@@ -293,6 +294,70 @@ class KnowledgeGraphService:
 
         return '\n\n'.join(result) if result else content[:1000]
 
+    @staticmethod
+    def _extract_json_from_response(text: str) -> str:
+        """从 LLM 响应中提取 JSON 字符串
+
+        LLM 经常在 JSON 前后添加解释文字，如：
+        "根据您的要求...```json\\n{...}\\n```"
+
+        此方法尝试找到第一个有效的 JSON 对象/数组并返回。
+        """
+        text = text.strip()
+
+        # 方法 1：查找 markdown 代码块
+        json_match = re.search(r'```(?:json)?\s*\n([\s\S]*?)```', text)
+        if json_match:
+            candidate = json_match.group(1).strip()
+            # 验证是否为有效 JSON
+            try:
+                json.loads(candidate)
+                return candidate
+            except json.JSONDecodeError:
+                pass  # 不是有效 JSON，继续尝试
+
+        # 方法 2：找到第一个 { 或 [，尝试从该位置解析
+        for start_char in ['{', '[']:
+            start = text.find(start_char)
+            if start == -1:
+                continue
+            # 从第一个匹配位置开始，尝试找到能完整解析的 JSON
+            # 简单策略：从 start 到末尾，逐步截断直到能解析
+            candidate = text[start:]
+            try:
+                json.loads(candidate)
+                return candidate
+            except json.JSONDecodeError:
+                # 尝试找匹配的结束位置
+                depth = 0
+                in_string = False
+                escape_next = False
+                for i, ch in enumerate(candidate):
+                    if escape_next:
+                        escape_next = False
+                        continue
+                    if ch == '\\':
+                        escape_next = True
+                        continue
+                    if ch == '"':
+                        in_string = not in_string
+                        continue
+                    if in_string:
+                        continue
+                    if ch in ('{', '['):
+                        depth += 1
+                    elif ch in ('}', ']'):
+                        depth -= 1
+                        if depth == 0:
+                            try:
+                                parsed = json.loads(candidate[:i + 1])
+                                return candidate[:i + 1]
+                            except json.JSONDecodeError:
+                                break
+
+        # 方法 3：什么都没有找到，返回原文（调用方会记录日志）
+        return text
+
     async def _call_llm(self, prompt: str, system_prompt: str = "你是一个知识图谱构建助手。") -> str:
         """调用大模型 API"""
         provider = self._create_provider()
@@ -312,7 +377,14 @@ class KnowledgeGraphService:
         feature_config = self._get_feature_config()
         temperature = feature_config.get("temperature", 0.7)
 
-        return await provider.generate(prompt, model, system_prompt, temperature=temperature)
+        logger.info(f"调用 LLM: provider={provider.provider_id}, model={model}, temperature={temperature}")
+
+        try:
+            result = await provider.generate(prompt, model, system_prompt, temperature=temperature)
+            return result
+        except Exception as e:
+            logger.error(f"LLM 调用失败: provider={provider.provider_id}, model={model}, error={e}")
+            raise
 
     async def _batch_extract_concepts(
         self,
@@ -427,22 +499,36 @@ class KnowledgeGraphService:
 
         try:
             result = await self._call_llm(prompt, system_prompt)
-            # 解析 JSON 响应
-            result = result.strip()
-            if result.startswith("```json"):
-                result = result[7:]
-            if result.endswith("```"):
-                result = result[:-3]
-            result = result.strip()
+
+            logger.debug(f"LLM 原始响应: note_id={note_id}, len={len(result)}, preview={result[:200]!r}")
+
+            # 提取 JSON：处理 LLM 返回的解释文字 + markdown 代码块
+            result = self._extract_json_from_response(result)
+
+            # 处理空响应
+            if not result:
+                logger.warning(f"概念提取-LLM 返回空: note_id={note_id}")
+                return []
 
             data = json.loads(result)
-            concepts = data.get("concepts", [])
 
-            # 添加来源笔记 ID
+            # 兼容 LLM 直接返回数组的情况
+            if isinstance(data, list):
+                concepts = data
+            elif isinstance(data, dict):
+                concepts = data.get("concepts", [])
+            else:
+                logger.warning(f"概念提取-意外的 JSON 类型: note_id={note_id}, type={type(data)}")
+                return []
+
+            # 确保每个概念有必要的字段
+            valid_concepts = []
             for concept in concepts:
-                concept["source_note_id"] = str(note_id)
+                if isinstance(concept, dict) and concept.get("name"):
+                    concept["source_note_id"] = str(note_id)
+                    valid_concepts.append(concept)
 
-            return concepts
+            return valid_concepts
 
         except Exception as e:
             logger.error(f"概念提取失败: note_id={note_id}, error={e}")
@@ -488,15 +574,21 @@ class KnowledgeGraphService:
 
         try:
             result = await self._call_llm(prompt, system_prompt)
-            result = result.strip()
-            if result.startswith("```json"):
-                result = result[7:]
-            if result.endswith("```"):
-                result = result[:-3]
-            result = result.strip()
+            logger.debug(f"关系发现-LLM 原始响应: len={len(result)}, preview={result[:200]!r}")
+            result = self._extract_json_from_response(result)
+
+            if not result:
+                logger.warning("关系发现-LLM 返回空")
+                return []
 
             data = json.loads(result)
-            return data.get("relationships", [])
+
+            # 兼容 LLM 直接返回数组的情况
+            if isinstance(data, list):
+                return data
+            elif isinstance(data, dict):
+                return data.get("relationships", [])
+            return []
 
         except Exception as e:
             logger.error(f"关系发现失败: error={e}")
