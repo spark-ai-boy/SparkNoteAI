@@ -69,7 +69,7 @@ const checkVersionCompatibility = (
   serverVersion: string
 ): VersionCompatibility => {
 
-  if (serverVersion == 'dev') {
+  if (serverVersion.includes('dev')) {
     return {
       compatible: true,
       message: `版本兼容 - 客户端 v${clientVersion} / 服务器 v${serverVersion}`,
