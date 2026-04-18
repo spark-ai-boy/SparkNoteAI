@@ -35,6 +35,7 @@
       "zip"
     ],
     "icon": "assets/icon.png",
+    "artifactName": "SparkNoteAI-${version}-${arch}-Mac.${ext}",
     "hardenedRuntime": true,
     "gatekeeperAssess": false,
     "entitlements": "electron/entitlements.mac.plist",
