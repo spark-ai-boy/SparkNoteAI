@@ -13,6 +13,15 @@ import { ThreeColumnLayout } from '../components/layout';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+// Web 端页面标题管理
+const usePageTitle = (title: string) => {
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      document.title = `${title} - SparkNoteAI`;
+    }
+  }, [title]);
+};
+
 export const RootNavigator: React.FC = () => {
   const { isAuthenticated, checkAuth, isLoading } = useAuthStore();
   const [, forceUpdate] = useState(0);
@@ -36,7 +45,22 @@ export const RootNavigator: React.FC = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      onStateChange={(state) => {
+        // Web 端根据导航状态更新页面标题
+        if (Platform.OS === 'web' && state) {
+          const currentRoute = state.routes[state.index];
+          const titles: Record<string, string> = {
+            Auth: '登录',
+            Login: '登录',
+            Register: '注册',
+            Main: '首页',
+          };
+          const title = titles[currentRoute.name] || 'SparkNoteAI';
+          document.title = `${title} - SparkNoteAI`;
+        }
+      }}
+    >
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <Stack.Screen name="Main" component={MainNavigator} />
