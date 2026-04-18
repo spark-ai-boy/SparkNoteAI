@@ -127,18 +127,32 @@ class ImageCacheService:
         # 上传
         cached_url = await storage.upload(image_data, filename)
 
-        # 记录缓存
-        cache_record = ImageCache(
-            original_url=original_url,
-            cached_url=cached_url,
-            storage_type=storage.provider_id,
-            file_path=filename,
-            file_size=len(image_data),
-            mime_type=content_type,
-            user_id=self.user_id,
-        )
-        self.db.add(cache_record)
-        self.db.commit()
+        # 记录缓存（使用 PostgreSQL INSERT ... ON CONFLICT DO NOTHING 处理唯一键冲突）
+        try:
+            from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+            stmt = pg_insert(ImageCache).values(
+                original_url=original_url,
+                cached_url=cached_url,
+                storage_type=storage.provider_id,
+                file_path=filename,
+                file_size=len(image_data),
+                mime_type=content_type,
+                user_id=self.user_id,
+            ).on_conflict_do_nothing(index_elements=["original_url"])
+
+            self.db.execute(stmt)
+            self.db.flush()
+        except Exception:
+            # 兜底：查询已有记录
+            cached = (
+                self.db.query(ImageCache)
+                .filter_by(original_url=original_url)
+                .first()
+            )
+            if cached:
+                return cached.cached_url
+            raise
 
         return cached_url
 

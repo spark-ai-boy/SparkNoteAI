@@ -98,6 +98,35 @@ export const useNoteStore = create<NoteState>((set, get) => ({
         currentNote: note,
         isSaving: false,
       }));
+      // 后端提取标签是异步任务，轮询刷新笔记和标签
+      const noteId = note.id;
+      console.log(`[noteStore] 开始轮询标签: noteId=${noteId}`);
+      const pollNoteAndTags = async (retries: number) => {
+        if (retries <= 0) {
+          console.log(`[noteStore] 轮询标签结束: noteId=${noteId}`);
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 3000));
+        // 重新获取笔记以获取最新标签
+        try {
+          const updatedNote = await notesApi.getNote(noteId);
+          if (updatedNote.tags && updatedNote.tags.length > 0) {
+            console.log(`[noteStore] 笔记已更新标签: noteId=${noteId}, tags=${updatedNote.tags}`);
+            set((state) => ({
+              notes: state.notes.map((n) => (n.id === noteId ? updatedNote : n)),
+              currentNote: state.currentNote?.id === noteId ? updatedNote : state.currentNote,
+            }));
+          }
+        } catch (e) {
+          console.error(`[noteStore] 获取笔记标签失败: noteId=${noteId}`, e);
+        }
+        // 刷新标签列表
+        await get().fetchTags();
+        const currentTags = get().tags;
+        console.log(`[noteStore] 标签列表刷新: count=${currentTags.length}`);
+        await pollNoteAndTags(retries - 1);
+      };
+      pollNoteAndTags(15); // 每 3 秒一次，最多重试 15 次（共 45 秒）
       return note;
     } catch (error) {
       console.error('创建笔记失败:', error);

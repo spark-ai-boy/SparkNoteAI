@@ -222,6 +222,13 @@ export const useImportTaskStore = create<ImportTaskState>((set, get) => ({
               5000
             );
           }
+          // 导入完成后刷新笔记列表和标签
+          const { fetchNotes, fetchTags } = (await import('./noteStore')).useNoteStore.getState();
+          fetchNotes();
+          // 延迟刷新标签（后端可能还在异步提取）
+          setTimeout(() => fetchTags(), 5000);
+          setTimeout(() => fetchTags(), 15000);
+          setTimeout(() => fetchTags(), 30000);
         } else if (task.status === TaskStatus.FAILED) {
           // 检查是否开启了错误通知
           if (notifications.error_alerts) {

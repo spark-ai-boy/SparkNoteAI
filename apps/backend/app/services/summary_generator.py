@@ -333,7 +333,15 @@ async def extract_tags_with_llm(
                     Tag.name == tag_name
                 ).first()
             if not existing:
-                new_tag = Tag(name=tag_name, user_id=user_id)
+                import random
+                preset_colors = [
+                    "#EF4444", "#F97316", "#F59E0B", "#EAB308",
+                    "#84CC16", "#22C55E", "#10B981", "#14B8A6",
+                    "#06B6D4", "#3B82F6", "#6366F1", "#8B5CF6",
+                    "#A855F7", "#D946EF", "#EC4899", "#F43F5E",
+                ]
+                random_color = random.choice(preset_colors)
+                new_tag = Tag(name=tag_name, user_id=user_id, color=random_color)
                 db.add(new_tag)
                 db.flush()
                 tag_names.append(new_tag.name)
