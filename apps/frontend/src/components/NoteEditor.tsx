@@ -1,6 +1,6 @@
 // 笔记编辑器组件 - 基于 md-editor-rt（React 版本）
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { useNoteStore } from '../stores/noteStore';
 import { Tag } from '../../api/note';
 import { useServerConfigStore } from '../stores/serverConfigStore';
 import { uploadImage } from '../api/imageStorage';
+import { transformImageUrl, transformMarkdownImages } from '../utils/imageUrlTransform';
 
 // Web 端导入 markdown 编辑器
 import { MdEditor, MdPreview } from 'md-editor-rt';
@@ -120,19 +121,37 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
   // 编辑器变更回调
   const handleContentChange = useCallback((val: string) => {
-    setContent(val);
+    // 仅还原开发模式下添加的后端 base URL 前缀（针对本地存储图片）
+    // 第三方图床的完整 URL 不会被影响
+    const devBasePattern = new RegExp(
+      `(https?:\\/\\/(?:localhost|127\\.0\\.0\\.1)[:0-9]*)?(\\/uploads[^\\s\\)]+)`,
+      'gi'
+    );
+    const reverted = val.replace(
+      /(\!\[.*?\]\()https?:\/\/(?:localhost|127\.0\.0\.1):\d+(\/uploads[^\s)]+)(\))/g,
+      '$1$2$3'
+    ).replace(
+      /(<img[^>]+src=")https?:\/\/(?:localhost|127\.0\.0\.1):\d+(\/uploads[^"]+)(")/g,
+      '$1$2$3'
+    );
+    setContent(reverted);
   }, []);
+
+  // 预处理内容中的图片路径（开发模式下 transformImgUrl 可能不生效）
+  const editorContent = useMemo(() => transformMarkdownImages(content, baseUrl), [content, baseUrl]);
 
   // 图片上传回调（供 md-editor-rt 的 "上传图片" 和 "剪裁上传" 使用）
   const handleImageUpload = useCallback(async (files: File[], callback: (urls: string[]) => void) => {
     try {
       const urls = await uploadImage(files);
-      callback(urls);
+      // 转换相对路径为完整 URL（上传返回 /uploads/...，需要补全）
+      const transformedUrls = urls.map(url => transformImageUrl(url, baseUrl));
+      callback(transformedUrls);
     } catch (error) {
       console.error('图片上传失败:', error);
       callback([]);
     }
-  }, []);
+  }, [baseUrl]);
 
   // Web 端 - 使用 md-editor-rt
   if (Platform.OS === 'web') {
@@ -402,11 +421,12 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                 }
               `}</style>
               <MdEditor
-                value={content}
+                value={editorContent}
                 onChange={handleContentChange}
                 onUploadImg={handleImageUpload}
                 theme={isDark ? 'dark' : 'light'}
                 language="zh-CN"
+                transformImgUrl={(src: string) => transformImageUrl(src, baseUrl)}
                 pageFullscreen={false}
                 preview={true}
                 htmlPreview={false}
@@ -640,7 +660,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                 }
               `}</style>
               <MdPreview
-                value={content}
+                value={editorContent}
                 theme={isDark ? 'dark' : 'light'}
                 language="zh-CN"
                 showCodeRowNumber
