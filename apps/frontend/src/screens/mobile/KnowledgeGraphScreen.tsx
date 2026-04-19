@@ -6,8 +6,10 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
   ActivityIndicator,
+  Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -16,7 +18,6 @@ import { useWebTheme } from '../../hooks/useWebTheme';
 import { NetworkIcon, SproutIcon, BrainIcon, WorkflowIcon, TagIcon, LayersIcon } from '../../components/icons';
 import { useKnowledgeGraphStore } from '../../stores/knowledgeGraphStore';
 import { useImportTaskStore } from '../../stores/importTaskStore';
-import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import type { GraphNode } from '../../api/knowledgeGraph';
 
 type SettingsSubPage = null; // 预留
@@ -68,10 +69,7 @@ export const KnowledgeGraphScreen: React.FC = () => {
   const tasks = useImportTaskStore((state) => state.tasks);
   const fetchTasks = useImportTaskStore((state) => state.fetchTasks);
 
-  const [showBuildConfirm, setShowBuildConfirm] = useState(false);
   const [showBuildInProgressAlert, setShowBuildInProgressAlert] = useState(false);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [showLLMConfigHint, setShowLLMConfigHint] = useState(false);
   const [showLLMConfigRequired, setShowLLMConfigRequired] = useState(false);
 
   const currentBuildTask = tasks.find(
@@ -87,6 +85,22 @@ export const KnowledgeGraphScreen: React.FC = () => {
     }, 2000);
     return () => clearInterval(pollTasks);
   }, []);
+
+  useEffect(() => {
+    if (showBuildInProgressAlert) {
+      Alert.alert('构建进行中', '已有全量构建任务正在进行中，请等待完成后再试', [
+        { text: '知道了', onPress: () => setShowBuildInProgressAlert(false) },
+      ]);
+    }
+  }, [showBuildInProgressAlert]);
+
+  useEffect(() => {
+    if (showLLMConfigRequired) {
+      Alert.alert('需要配置大模型', '请先在设置中配置大模型 API Key 才能构建知识图谱', [
+        { text: '取消', style: 'cancel', onPress: () => setShowLLMConfigRequired(false) },
+      ]);
+    }
+  }, [showLLMConfigRequired]);
 
   const needsLLMConfig = status && !status.has_llm_config;
   const needsBuild = status && !status.graph_exists && status.has_llm_config;
@@ -105,11 +119,35 @@ export const KnowledgeGraphScreen: React.FC = () => {
       setShowLLMConfigRequired(true);
       return;
     }
-    setShowBuildConfirm(true);
+    const title = hasData ? '重新构建知识图谱' : '构建知识图谱';
+    const message = hasData
+      ? '确定要重新构建知识图谱吗？这将清空现有的图谱数据。'
+      : '确定要开始构建知识图谱吗？这可能需要几分钟时间。';
+    if (Platform.OS === 'ios') {
+      Alert.alert(title, message, [
+        { text: '取消', style: 'cancel' },
+        { text: '确定', style: hasData ? 'destructive' : 'default', onPress: () => startBuild(!!hasData) },
+      ]);
+    } else {
+      Alert.alert(title, message, [
+        { text: '取消', style: 'cancel' },
+        { text: '确定', onPress: () => startBuild(!!hasData) },
+      ]);
+    }
   };
 
   const handleClearGraph = () => {
-    setShowClearConfirm(true);
+    if (Platform.OS === 'ios') {
+      Alert.alert('清空知识图谱', '确定要清空知识图谱吗？此操作不可恢复。', [
+        { text: '取消', style: 'cancel' },
+        { text: '清空', style: 'destructive', onPress: () => clearGraph() },
+      ]);
+    } else {
+      Alert.alert('清空知识图谱', '确定要清空知识图谱吗？此操作不可恢复。', [
+        { text: '取消', style: 'cancel' },
+        { text: '确定', onPress: () => clearGraph() },
+      ]);
+    }
   };
 
   // 未配置 LLM
@@ -129,22 +167,13 @@ export const KnowledgeGraphScreen: React.FC = () => {
             知识图谱功能需要使用大模型来提取概念和发现关系。{'\n'}
             请先在设置中配置大模型 API Key。
           </Text>
-          <TouchableOpacity
+          <Pressable
             style={[styles.configButton, { backgroundColor: colors.primary }]}
-            onPress={() => setShowLLMConfigHint(true)}
+            onPress={() => setShowLLMConfigRequired(true)}
           >
             <Text style={[styles.configButtonText, { color: colors.primaryForeground }]}>去配置大模型</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
-        <ConfirmDialog
-          visible={showLLMConfigHint}
-          title="提示"
-          message="请前往设置页面配置大模型"
-          confirmText="好的"
-          cancelText=""
-          onConfirm={() => setShowLLMConfigHint(false)}
-          onCancel={() => setShowLLMConfigHint(false)}
-        />
       </SafeAreaView>
     );
   }
@@ -216,31 +245,13 @@ export const KnowledgeGraphScreen: React.FC = () => {
               <Text style={styles.step}>生成可视化知识网络</Text>
             </View>
           </View>
-          <TouchableOpacity
+          <Pressable
             style={[styles.buildButton, { backgroundColor: colors.primary }]}
             onPress={handleBuildGraph}
           >
             <Text style={[styles.buildButtonText, { color: colors.primaryForeground }]}>开始构建</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
-        <ConfirmDialog
-          visible={showBuildInProgressAlert}
-          title="构建进行中"
-          message="已有全量构建任务正在进行中，请等待完成后再试"
-          confirmText="知道了"
-          cancelText=""
-          onConfirm={() => setShowBuildInProgressAlert(false)}
-          onCancel={() => setShowBuildInProgressAlert(false)}
-        />
-        <ConfirmDialog
-          visible={showLLMConfigRequired}
-          title="需要配置大模型"
-          message="请先在设置中配置大模型 API Key 才能构建知识图谱"
-          confirmText="去配置"
-          cancelText="取消"
-          onConfirm={() => setShowLLMConfigRequired(false)}
-          onCancel={() => setShowLLMConfigRequired(false)}
-        />
       </SafeAreaView>
     );
   }
@@ -259,23 +270,21 @@ export const KnowledgeGraphScreen: React.FC = () => {
           </Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity
+          <Pressable
             style={[styles.actionButton, isFullBuildInProgress && styles.actionButtonDisabled]}
             onPress={handleBuildGraph}
-            disabled={isLoadingStatus || isLoadingData || isFullBuildInProgress}
           >
             <Text style={[styles.actionButtonText, isFullBuildInProgress && styles.actionButtonTextDisabled]}>
               {isFullBuildInProgress ? '构建中' : (hasData ? '重新构建' : '构建')}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
           {hasData && (
-            <TouchableOpacity
+            <Pressable
               style={styles.actionButton}
               onPress={handleClearGraph}
-              disabled={isLoadingStatus || isLoadingData}
             >
               <Text style={[styles.actionButtonText, { color: colors.error }]}>清空</Text>
-            </TouchableOpacity>
+            </Pressable>
           )}
         </View>
       </View>
@@ -285,9 +294,9 @@ export const KnowledgeGraphScreen: React.FC = () => {
         <View style={styles.errorBanner}>
           <Text style={styles.errorBannerIcon}>⚠️</Text>
           <Text style={styles.errorBannerText}>{error}</Text>
-          <TouchableOpacity onPress={() => { useKnowledgeGraphStore.getState().error = null; }}>
+          <Pressable onPress={() => { useKnowledgeGraphStore.getState().error = null; }}>
             <Text style={styles.errorBannerClose}>✕</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       )}
 
@@ -353,44 +362,6 @@ export const KnowledgeGraphScreen: React.FC = () => {
           </View>
         )}
       </ScrollView>
-
-      <ConfirmDialog
-        visible={showBuildInProgressAlert}
-        title="构建进行中"
-        message="已有全量构建任务正在进行中，请等待完成后再试"
-        confirmText="知道了"
-        cancelText=""
-        onConfirm={() => setShowBuildInProgressAlert(false)}
-        onCancel={() => setShowBuildInProgressAlert(false)}
-      />
-      <ConfirmDialog
-        visible={showBuildConfirm}
-        title="构建知识图谱"
-        message={hasData
-          ? '确定要重新构建知识图谱吗？这将清空现有的图谱数据。'
-          : '确定要开始构建知识图谱吗？这可能需要几分钟时间。'}
-        confirmText="确定"
-        cancelText="取消"
-        isDestructive={!!hasData}
-        onConfirm={() => {
-          setShowBuildConfirm(false);
-          startBuild(!!hasData);
-        }}
-        onCancel={() => setShowBuildConfirm(false)}
-      />
-      <ConfirmDialog
-        visible={showClearConfirm}
-        title="清空知识图谱"
-        message="确定要清空知识图谱吗？此操作不可恢复。"
-        confirmText="确定"
-        cancelText="取消"
-        isDestructive
-        onConfirm={() => {
-          setShowClearConfirm(false);
-          clearGraph();
-        }}
-        onCancel={() => setShowClearConfirm(false)}
-      />
     </SafeAreaView>
   );
 };

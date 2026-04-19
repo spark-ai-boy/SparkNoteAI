@@ -7,10 +7,9 @@ import {
   StyleSheet,
   ScrollView,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   ActivityIndicator,
   Alert,
-  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -19,7 +18,6 @@ import { useWebTheme } from '../../hooks/useWebTheme';
 import { useToast } from '../../hooks/useToast';
 import { notesApi, type Note } from '../../api/note';
 import { SettingsItem } from './components/SettingsItem';
-import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { ChevronLeftIcon, EditIcon, TrashIcon, CheckIcon, GlobeIcon, TagIcon } from '../../components/icons';
 
 interface NoteDetailScreenProps {
@@ -36,7 +34,6 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({ noteId, onBa
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
 
   useEffect(() => {
@@ -76,15 +73,28 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({ noteId, onBa
     }
   };
 
-  const handleDelete = async () => {
-    try {
-      await notesApi.deleteNote(noteId);
-      setShowDeleteConfirm(false);
-      setShowDeleteSuccess(true);
-      onUpdate?.();
-    } catch (e: any) {
-      toast.error('删除失败');
-    }
+  const handleDelete = () => {
+    if (!note) return;
+    Alert.alert(
+      '删除笔记',
+      `确定要删除「${note.title}」吗？此操作不可恢复。`,
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '删除',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await notesApi.deleteNote(noteId);
+              setShowDeleteSuccess(true);
+              onUpdate?.();
+            } catch (e: any) {
+              toast.error('删除失败');
+            }
+          },
+        },
+      ],
+    );
   };
 
   const formatTime = (iso: string) => {
@@ -124,9 +134,9 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({ noteId, onBa
         </View>
         <View style={styles.center}>
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>笔记不存在或已被删除</Text>
-          <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.primary }]} onPress={onBack}>
+          <Pressable style={[styles.backBtn, { backgroundColor: colors.primary }]} onPress={onBack}>
             <Text style={[styles.backBtnText, { color: colors.primaryForeground }]}>返回列表</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </SafeAreaView>
     );
@@ -136,13 +146,13 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({ noteId, onBa
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <TouchableOpacity onPress={() => { setEditing(false); setEditTitle(note.title); setEditContent(note.content || ''); }}>
+          <Pressable onPress={() => { setEditing(false); setEditTitle(note.title); setEditContent(note.content || ''); }}>
             <ChevronLeftIcon size={22} color={colors.text} />
-          </TouchableOpacity>
+          </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>编辑笔记</Text>
-          <TouchableOpacity onPress={handleSave}>
+          <Pressable onPress={handleSave}>
             <CheckIcon size={22} color={colors.primary} />
-          </TouchableOpacity>
+          </Pressable>
         </View>
         <ScrollView contentContainerStyle={styles.editContent}>
           <TextInput
@@ -171,16 +181,16 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({ noteId, onBa
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={onBack}>
+        <Pressable onPress={onBack} style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}>
           <ChevronLeftIcon size={22} color={colors.text} />
-        </TouchableOpacity>
+        </Pressable>
         <View style={{ flex: 1 }} />
-        <TouchableOpacity style={styles.headerAction} onPress={() => setEditing(true)}>
+        <Pressable style={styles.headerAction} onPress={() => setEditing(true)}>
           <EditIcon size={20} color={colors.primary} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.headerAction} onPress={() => setShowDeleteConfirm(true)}>
+        </Pressable>
+        <Pressable style={styles.headerAction} onPress={handleDelete}>
           <TrashIcon size={20} color={colors.error} />
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -235,34 +245,17 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({ noteId, onBa
         )}
       </ScrollView>
 
-      {/* 删除确认 */}
-      <ConfirmDialog
-        visible={showDeleteConfirm}
-        title="删除笔记"
-        message={`确定要删除「${note.title}」吗？此操作不可恢复。`}
-        confirmText="删除"
-        cancelText="取消"
-        isDestructive
-        onConfirm={handleDelete}
-        onCancel={() => setShowDeleteConfirm(false)}
-      />
-
       {/* 删除成功提示 */}
-      <Modal
-        visible={showDeleteSuccess}
-        transparent
-        animationType="fade"
-        onRequestClose={onBack}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+      {showDeleteSuccess && (
+        <View style={styles.deleteSuccessOverlay}>
+          <View style={[styles.deleteSuccessBox, { backgroundColor: colors.background }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>笔记已删除</Text>
-            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: colors.primary }]} onPress={onBack}>
+            <Pressable style={[styles.modalBtn, { backgroundColor: colors.primary }]} onPress={onBack}>
               <Text style={[styles.modalBtnText, { color: colors.primaryForeground }]}>返回列表</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
-      </Modal>
+      )}
     </SafeAreaView>
   );
 };
@@ -383,13 +376,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
-  modalOverlay: {
-    flex: 1,
+  deleteSuccessOverlay: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 100,
   },
-  modalContainer: {
+  deleteSuccessBox: {
     borderRadius: 16,
     padding: spacing.xl,
     width: '80%',

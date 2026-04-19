@@ -1,7 +1,7 @@
 // 设置列表项
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { spacing } from '../../../theme';
 import { useWebTheme } from '../../../hooks/useWebTheme';
 import { ChevronRightIcon } from '../../../components/icons';
@@ -27,11 +27,12 @@ export const SettingsItem: React.FC<SettingsItemProps> = ({
   const textColor = destructive ? colors.error : colors.text;
 
   return (
-    <TouchableOpacity
-      style={styles.container}
+    <Pressable
+      style={({ pressed }) => [
+        styles.container,
+        pressed && { opacity: 0.6 },
+      ]}
       onPress={onPress}
-      activeOpacity={onPress ? 0.7 : 1}
-      disabled={!onPress}
     >
       <View style={styles.iconContainer}>
         {icon}
@@ -45,7 +46,7 @@ export const SettingsItem: React.FC<SettingsItemProps> = ({
       {showChevron && onPress ? (
         <ChevronRightIcon size={18} color={colors.textTertiary} />
       ) : null}
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
