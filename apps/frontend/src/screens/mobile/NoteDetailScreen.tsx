@@ -355,7 +355,8 @@ export const NoteDetailScreen: React.FC = () => {
       {mode === 'edit' ? (
         // ========== 编辑模式 ==========
         <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.background }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <ScrollView contentContainerStyle={styles.editContent} keyboardShouldPersistTaps="handled">
+          {/* 顶部标题输入 */}
+          <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.xs }}>
             <TextInput
               ref={textInputRef}
               style={[styles.titleInput, { color: colors.text }]}
@@ -365,22 +366,9 @@ export const NoteDetailScreen: React.FC = () => {
               placeholderTextColor={colors.textTertiary}
               autoFocus
             />
-            {/* Markdown 工具栏 */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.toolbar}>
-              {toolbarItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <TouchableOpacity
-                    key={item.key}
-                    style={[styles.toolbarBtn, { borderColor: colors.border }]}
-                    onPress={() => insertMarkdown(item.prefix, item.suffix, item.placeholder)}
-                    activeOpacity={0.6}
-                  >
-                    <Icon size={18} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+          </View>
+          {/* 内容编辑区 */}
+          <ScrollView contentContainerStyle={styles.editContent} keyboardShouldPersistTaps="handled">
             <TextInput
               style={[styles.contentInput, { color: colors.text }]}
               value={editContent}
@@ -392,6 +380,24 @@ export const NoteDetailScreen: React.FC = () => {
               onSelectionChange={(e) => setCursorPosition({ start: e.nativeEvent.selection.start, end: e.nativeEvent.selection.end })}
             />
           </ScrollView>
+          {/* 底部工具栏 */}
+          <View style={[styles.toolbarBar, { backgroundColor: colors.backgroundSecondary, borderTopColor: colors.border }]}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.toolbarContent}>
+              {toolbarItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <TouchableOpacity
+                    key={item.key}
+                    style={styles.toolbarBtn}
+                    onPress={() => insertMarkdown(item.prefix, item.suffix, item.placeholder)}
+                    activeOpacity={0.6}
+                  >
+                    <Icon size={20} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       ) : (
         // ========== 预览模式 ==========
@@ -562,33 +568,36 @@ const styles = StyleSheet.create({
   // 编辑模式
   editContent: {
     padding: spacing.lg,
+    paddingTop: 0,
     paddingBottom: spacing.xl,
   },
   titleInput: {
     fontSize: 22,
     fontWeight: '700',
-    marginBottom: spacing.md,
     minHeight: 40,
-  },
-  toolbar: {
-    flexDirection: 'row',
-    marginBottom: spacing.md,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 0.5,
-    gap: spacing.xs,
-  },
-  toolbarBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 0.5,
   },
   contentInput: {
     fontSize: 15,
     lineHeight: 24,
     minHeight: 300,
+  },
+  toolbarBar: {
+    borderTopWidth: 0.5,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  toolbarContent: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    alignItems: 'center',
+    height: 44,
+  },
+  toolbarBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   // 通用
   center: {
