@@ -9,11 +9,16 @@ interface NoteCardProps {
   title: string;
   summary?: string;
   tags?: string[];
+  tagColors?: Record<string, string>;
   onPress?: () => void;
 }
 
-export const NoteCard: React.FC<NoteCardProps> = ({ title, summary, tags, onPress }) => {
+export const NoteCard: React.FC<NoteCardProps> = ({ title, summary, tags, tagColors, onPress }) => {
   const colors = useTheme();
+
+  const getTagColor = (tagName: string): string => {
+    return tagColors?.[tagName] || colors.primary;
+  };
 
   return (
     <TouchableOpacity
@@ -31,11 +36,14 @@ export const NoteCard: React.FC<NoteCardProps> = ({ title, summary, tags, onPres
       ) : null}
       {tags && tags.length > 0 && (
         <View style={styles.tagsContainer}>
-          {tags.slice(0, 3).map((tag) => (
-            <View key={tag} style={[styles.tag, { backgroundColor: colors.primary + '15' }]}>
-              <Text style={[styles.tagText, { color: colors.primary }]}>{tag}</Text>
-            </View>
-          ))}
+          {tags.slice(0, 3).map((tag) => {
+            const tagColor = getTagColor(tag);
+            return (
+              <View key={tag} style={[styles.tag, { backgroundColor: tagColor + '15' }]}>
+                <Text style={[styles.tagText, { color: tagColor }]}>{tag}</Text>
+              </View>
+            );
+          })}
         </View>
       )}
     </TouchableOpacity>

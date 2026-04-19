@@ -57,6 +57,7 @@ export const MobileNotesStackScreen: React.FC = () => {
       screenOptions={{
         headerTintColor: colors.primary,
         headerTitleStyle: { fontSize: 17, fontWeight: '600' },
+        headerShadowVisible: false,
         animation: 'slide_from_right',
       }}
     >

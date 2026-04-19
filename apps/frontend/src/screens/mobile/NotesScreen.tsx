@@ -4,13 +4,14 @@ import React, { useState, useCallback, useEffect, useLayoutEffect, useRef } from
 import {
   View,
   StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  TextInput,
+  SectionList,
+  ScrollView,
   RefreshControl,
   Modal,
   Text,
   Dimensions,
+  TouchableOpacity,
+  TextInput,
 } from 'react-native';
 
 import { spacing } from '../../theme';
@@ -20,7 +21,7 @@ import { NoteCard } from './components/NoteCard';
 import { EmptyState } from './components/EmptyState';
 import { ImportDialog } from '../../components/ImportDialog';
 import { NoteDetailScreen } from './NoteDetailScreen';
-import { notesApi, type Note } from '../../api/note';
+import { notesApi, type Note, type Tag } from '../../api/note';
 import { createImportTask } from '../../api/importTask';
 import { useToast } from '../../hooks/useToast';
 import { useToastStore } from '../../stores/toastStore';
@@ -37,6 +38,40 @@ type MobileNotesStackParamList = {
 };
 
 type NavProp = NativeStackNavigationProp<MobileNotesStackParamList, 'NotesHome'>;
+
+interface DateGroup {
+  date: string;
+  dateLabel: string;
+  data: Note[];
+}
+
+const groupByDate = (items: Note[]): DateGroup[] => {
+  const groups: Map<string, DateGroup> = new Map();
+
+  items.forEach((item) => {
+    const date = new Date(item.created_at);
+    const dateKey = date.toISOString().split('T')[0];
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    let dateLabel: string;
+    if (date.toDateString() === today.toDateString()) {
+      dateLabel = '今天';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      dateLabel = '昨天';
+    } else {
+      dateLabel = date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+    }
+
+    if (!groups.has(dateKey)) {
+      groups.set(dateKey, { date: dateKey, dateLabel, data: [] });
+    }
+    groups.get(dateKey)!.data.push(item);
+  });
+
+  return Array.from(groups.values());
+};
 
 const menuItems = [
   { key: 'create', label: '新建笔记', icon: PlusIcon },
@@ -58,6 +93,8 @@ export const NotesScreen: React.FC = () => {
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [viewingNote, setViewingNote] = useState<number | null>(null);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const menuButtonRef = useRef<any>(null);
   const [menuRect, setMenuRect] = useState({ top: 0, right: 0 });
 
@@ -122,7 +159,22 @@ export const NotesScreen: React.FC = () => {
 
   useEffect(() => {
     fetchNotes();
+    fetchTags();
   }, []);
+
+  const fetchTags = async () => {
+    try {
+      const res = await notesApi.getTags();
+      setTags(res);
+    } catch (e: any) {
+      // 标签获取失败不影响笔记列表
+    }
+  };
+
+  const getTagColor = (tagName: string): string => {
+    const tag = tags.find((t) => t.name === tagName);
+    return tag?.color || colors.textTertiary;
+  };
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -149,22 +201,18 @@ export const NotesScreen: React.FC = () => {
     }
   };
 
-  const filteredNotes = searchQuery
-    ? notes.filter(
-        (n) =>
-          n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          n.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
-    : notes;
+  const filteredNotes = notes.filter((n) => {
+    if (selectedTag && !n.tags.includes(selectedTag)) return false;
+    if (searchQuery) {
+      return (
+        n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        n.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+    }
+    return true;
+  });
 
-  const renderNoteItem = ({ item }: { item: Note }) => (
-    <NoteCard
-      title={item.title}
-      summary={item.summary || item.content?.slice(0, 100)}
-      tags={item.tags}
-      onPress={() => setViewingNote(item.id)}
-    />
-  );
+  const groupedNotes = groupByDate(filteredNotes);
 
   const handleRefreshList = useCallback(() => {
     setRefreshing(true);
@@ -186,24 +234,81 @@ export const NotesScreen: React.FC = () => {
       <View style={styles.searchBar}>
         <View style={[styles.searchInputWrap, { backgroundColor: '#E5E5EA' }]}>
           <SearchIcon size={16} color={colors.textTertiary} />
+          {selectedTag && (
+            <View style={[styles.searchTagChip, { backgroundColor: getTagColor(selectedTag) + '20' }]}>
+              <Text style={[styles.searchTagChipText, { color: getTagColor(selectedTag) }]}>{selectedTag}</Text>
+              <TouchableOpacity onPress={() => setSelectedTag(null)} activeOpacity={0.6} style={styles.searchTagClose}>
+                <CloseIcon size={12} color={getTagColor(selectedTag)} />
+              </TouchableOpacity>
+            </View>
+          )}
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="搜索笔记..."
+            placeholder={selectedTag ? `在 #${selectedTag} 中搜索...` : '搜索笔记...'}
             placeholderTextColor={colors.textTertiary}
             autoCapitalize="none"
           />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')} activeOpacity={0.6} style={{ padding: 4 }}>
+          {(searchQuery.length > 0 || selectedTag !== null) && (
+            <TouchableOpacity onPress={() => { setSearchQuery(''); setSelectedTag(null); }} activeOpacity={0.6} style={{ padding: 4 }}>
               <CloseIcon size={14} color={colors.textTertiary} />
             </TouchableOpacity>
           )}
         </View>
       </View>
-      <FlatList
-        data={filteredNotes}
-        renderItem={renderNoteItem}
+
+      {tags.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tagBar} contentContainerStyle={styles.tagBarContent}>
+          <TouchableOpacity
+            style={[styles.tagChip, { backgroundColor: selectedTag === null ? colors.primary + '20' : '#E5E5EA' }]}
+            onPress={() => setSelectedTag(null)}
+            activeOpacity={0.6}
+          >
+            <Text style={[styles.tagChipText, { color: selectedTag === null ? colors.primary : colors.textSecondary }]}>全部</Text>
+          </TouchableOpacity>
+          {tags.map((tag) => {
+            const tagColor = getTagColor(tag.name);
+            const isSelected = selectedTag === tag.name;
+            return (
+              <TouchableOpacity
+                key={tag.id}
+                style={[styles.tagChip, { backgroundColor: isSelected ? tagColor + '20' : tagColor + '12' }]}
+                onPress={() => setSelectedTag(isSelected ? null : tag.name)}
+                activeOpacity={0.6}
+              >
+                <View style={[styles.tagDot, { backgroundColor: tagColor }]} />
+                <Text style={[styles.tagChipText, { color: tagColor }]}>{tag.name}</Text>
+              </TouchableOpacity>
+            );
+          })}
+          {selectedTag !== null && (
+            <TouchableOpacity style={styles.clearTagBtn} onPress={() => setSelectedTag(null)} activeOpacity={0.6}>
+              <CloseIcon size={14} color={colors.textTertiary} />
+            </TouchableOpacity>
+          )}
+        </ScrollView>
+      )}
+      <SectionList
+        sections={groupedNotes}
+        renderItem={({ item }) => {
+          const tagColorMap: Record<string, string> = {};
+          item.tags.forEach((t) => {
+            tagColorMap[t] = getTagColor(t);
+          });
+          return (
+            <NoteCard
+              title={item.title}
+              summary={item.summary || item.content?.slice(0, 100)}
+              tags={item.tags}
+              tagColors={tagColorMap}
+              onPress={() => setViewingNote(item.id)}
+            />
+          );
+        }}
+        renderSectionHeader={({ section }) => (
+          <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>{section.dateLabel}</Text>
+        )}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
         refreshControl={
@@ -214,7 +319,7 @@ export const NotesScreen: React.FC = () => {
           />
         }
         ListEmptyComponent={
-          !loading && filteredNotes.length === 0 ? (
+          !loading && groupedNotes.length === 0 ? (
             <EmptyState
               icon={searchQuery ? <SearchIcon size={48} color={colors.textTertiary} /> : <BookIcon size={48} color={colors.textTertiary} />}
               title={searchQuery ? '未找到相关笔记' : '暂无笔记'}
@@ -222,6 +327,7 @@ export const NotesScreen: React.FC = () => {
             />
           ) : null
         }
+        stickySectionHeadersEnabled={false}
       />
 
       <ImportDialog
@@ -275,10 +381,20 @@ export const NotesScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  searchBar: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  searchInputWrap: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, paddingHorizontal: spacing.sm, paddingVertical: 6, gap: spacing.xs },
+  searchBar: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: 0 },
+  tagBar: { maxHeight: 40 },
+  tagBarContent: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.xs },
+  tagChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: 12, gap: 4, height: 28 },
+  tagChipText: { fontSize: 13, fontWeight: '500' },
+  tagDot: { width: 6, height: 6, borderRadius: 3 },
+  clearTagBtn: { justifyContent: 'center', alignItems: 'center', width: 28, height: 28 },
+  searchInputWrap: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, paddingHorizontal: spacing.sm, paddingVertical: 6, gap: spacing.xs, marginTop: spacing.xs },
+  searchTagChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, gap: 4 },
+  searchTagChipText: { fontSize: 13, fontWeight: '600' },
+  searchTagClose: { padding: 2 },
   searchInput: { flex: 1, fontSize: 15, paddingVertical: spacing.xs },
-  listContent: { padding: spacing.md, paddingBottom: spacing.xl },
+  listContent: { padding: spacing.md, paddingBottom: spacing.xl, paddingTop: 0 },
+  sectionHeader: { fontSize: 13, fontWeight: '600', paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.xs },
   menuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.2)' },
   menuContainer: { borderRadius: 12, borderWidth: 0.5, overflow: 'hidden', position: 'absolute', width: 200, paddingVertical: 6 },
   menuItem: { flexDirection: 'row', alignItems: 'center', height: 40, paddingHorizontal: spacing.md },
