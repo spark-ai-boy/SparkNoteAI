@@ -3,14 +3,14 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { spacing } from '../../../theme';
-import { useWebTheme } from '../../../hooks/useWebTheme';
+import { useTheme } from '../../../hooks/useTheme';
 
 interface SectionHeaderProps {
   title: string;
 }
 
 export const SectionHeader: React.FC<SectionHeaderProps> = ({ title }) => {
-  const colors = useWebTheme();
+  const colors = useTheme();
 
   return (
     <View style={styles.container}>
@@ -27,8 +27,9 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 13,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontWeight: '400',
+    letterSpacing: -0.08,
+    textTransform: 'uppercase',
   },
 });
 

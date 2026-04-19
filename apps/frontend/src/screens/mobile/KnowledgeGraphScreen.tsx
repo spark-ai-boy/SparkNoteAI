@@ -5,7 +5,7 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   Pressable,
   ActivityIndicator,
   Alert,
@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { spacing } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
+import { useTheme } from '../../hooks/useTheme';
 import { NetworkIcon, SproutIcon, BrainIcon, WorkflowIcon, TagIcon, LayersIcon } from '../../components/icons';
 import { useKnowledgeGraphStore } from '../../stores/knowledgeGraphStore';
 import { useImportTaskStore } from '../../stores/importTaskStore';
@@ -42,7 +42,7 @@ function groupNodesByType(nodes: GraphNode[]): Record<string, GraphNode[]> {
   return groups;
 }
 
-function StatCard({ icon, label, value, colors }: { icon: React.ReactNode; label: string; value: number; colors: ReturnType<typeof useWebTheme> }) {
+function StatCard({ icon, label, value, colors }: { icon: React.ReactNode; label: string; value: number; colors: ReturnType<typeof useTheme> }) {
   return (
     <View style={[styles.statCard, { backgroundColor: colors.backgroundSecondary }]}>
       {icon}
@@ -53,7 +53,7 @@ function StatCard({ icon, label, value, colors }: { icon: React.ReactNode; label
 }
 
 export const KnowledgeGraphScreen: React.FC = () => {
-  const colors = useWebTheme();
+  const colors = useTheme();
   const {
     status,
     graphData,
@@ -260,6 +260,16 @@ export const KnowledgeGraphScreen: React.FC = () => {
   const nodesByType = graphData ? groupNodesByType(graphData.nodes) : {};
   const nodeTypes = Object.keys(nodesByType);
 
+  // 扁平化数据：section header + 节点
+  type ListItem = { type: 'header'; key: string; nodeType: string } | { type: 'node'; key: string; data: GraphNode };
+  const flatData: ListItem[] = [];
+  nodeTypes.forEach((nodeType) => {
+    flatData.push({ type: 'header', key: `header-${nodeType}`, nodeType });
+    nodesByType[nodeType].forEach((node) => {
+      flatData.push({ type: 'node', key: String(node.id), data: node });
+    });
+  });
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
@@ -300,59 +310,33 @@ export const KnowledgeGraphScreen: React.FC = () => {
         </View>
       )}
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* 统计卡片 */}
-        <View style={styles.statsRow}>
-          <StatCard
-            icon={<TagIcon size={20} color={colors.primary} />}
-            label="概念"
-            value={status?.node_count || 0}
-            colors={colors}
-          />
-          <StatCard
-            icon={<NetworkIcon size={20} color={colors.success} />}
-            label="关系"
-            value={status?.edge_count || 0}
-            colors={colors}
-          />
-          <StatCard
-            icon={<LayersIcon size={20} color={colors.warning} />}
-            label="类型"
-            value={nodeTypes.length}
-            colors={colors}
-          />
-        </View>
-
-        {/* 节点按类型分组 */}
-        {nodeTypes.length > 0 && (
-          <View style={styles.nodesSection}>
-            <Text style={[styles.nodesSectionTitle, { color: colors.textSecondary }]}>概念分类</Text>
-            {nodeTypes.map((type) => (
-              <View key={type} style={styles.nodeGroup}>
-                <View style={styles.nodeGroupHeader}>
-                  <Text style={[styles.nodeGroupTitle, { color: colors.text }]}>
-                    {typeLabel(type)}（{nodesByType[type].length}）
-                  </Text>
-                </View>
-                <View style={[styles.nodeGroupContent, { backgroundColor: colors.backgroundSecondary }]}>
-                  {nodesByType[type].map((node) => (
-                    <View key={node.id} style={[styles.nodeItem, { borderBottomColor: colors.border }]}>
-                      <Text style={[styles.nodeName, { color: colors.text }]}>{node.name}</Text>
-                      {node.description ? (
-                        <Text style={[styles.nodeDesc, { color: colors.textSecondary }]} numberOfLines={2}>
-                          {node.description}
-                        </Text>
-                      ) : null}
-                    </View>
-                  ))}
-                </View>
-              </View>
-            ))}
+      <FlatList<ListItem>
+        data={flatData}
+        keyExtractor={(item) => item.key}
+        style={styles.scrollContent}
+        ListHeaderComponent={
+          <View style={styles.statsRow}>
+            <StatCard
+              icon={<TagIcon size={20} color={colors.primary} />}
+              label="概念"
+              value={status?.node_count || 0}
+              colors={colors}
+            />
+            <StatCard
+              icon={<NetworkIcon size={20} color={colors.success} />}
+              label="关系"
+              value={status?.edge_count || 0}
+              colors={colors}
+            />
+            <StatCard
+              icon={<LayersIcon size={20} color={colors.warning} />}
+              label="类型"
+              value={nodeTypes.length}
+              colors={colors}
+            />
           </View>
-        )}
-
-        {/* 无数据时的占位 */}
-        {(!hasData || !graphData) && (
+        }
+        ListEmptyComponent={
           <View style={styles.graphPlaceholder}>
             <NetworkIcon size={48} color={colors.textTertiary} strokeWidth={1.5} />
             <Text style={[styles.placeholderText, { color: colors.text }]}>暂无图谱数据</Text>
@@ -360,8 +344,30 @@ export const KnowledgeGraphScreen: React.FC = () => {
               点击「构建」开始生成知识图谱
             </Text>
           </View>
-        )}
-      </ScrollView>
+        }
+        renderItem={({ item }) => {
+          if (item.type === 'header') {
+            return (
+              <View style={styles.nodeGroupHeader}>
+                <Text style={[styles.nodeGroupTitle, { color: colors.text }]}>
+                  {typeLabel(item.nodeType)}（{nodesByType[item.nodeType]?.length || 0}）
+                </Text>
+              </View>
+            );
+          }
+          const node = item.data;
+          return (
+            <View style={[styles.nodeItem, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.nodeName, { color: colors.text }]}>{node.name}</Text>
+              {node.description ? (
+                <Text style={[styles.nodeDesc, { color: colors.textSecondary }]} numberOfLines={2}>
+                  {node.description}
+                </Text>
+              ) : null}
+            </View>
+          );
+        }}
+      />
     </SafeAreaView>
   );
 };
@@ -594,28 +600,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
-  nodesSection: {
-    marginTop: spacing.lg,
-    paddingHorizontal: spacing.md,
-  },
-  nodesSectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: spacing.md,
-  },
-  nodeGroup: {
-    marginBottom: spacing.md,
-  },
   nodeGroupHeader: {
-    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xs,
   },
   nodeGroupTitle: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
-  },
-  nodeGroupContent: {
-    borderRadius: 12,
-    overflow: 'hidden',
   },
   nodeItem: {
     padding: spacing.md,

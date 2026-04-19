@@ -3,7 +3,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { spacing } from '../../../theme';
-import { useWebTheme } from '../../../hooks/useWebTheme';
+import { useTheme } from '../../../hooks/useTheme';
 
 interface NoteCardProps {
   title: string;
@@ -13,7 +13,7 @@ interface NoteCardProps {
 }
 
 export const NoteCard: React.FC<NoteCardProps> = ({ title, summary, tags, onPress }) => {
-  const colors = useWebTheme();
+  const colors = useTheme();
 
   return (
     <TouchableOpacity

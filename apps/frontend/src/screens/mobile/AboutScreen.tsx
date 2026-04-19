@@ -1,33 +1,18 @@
-// 关于页面（手机端）
+// 关于页面（手机端）— iOS 分组卡片风格
 
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { spacing } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
-import { SettingsItem } from './components/SettingsItem';
-import { SectionHeader } from './components/SectionHeader';
-import { ChevronLeftIcon } from '../../components/icons';
+import { useTheme } from '../../hooks/useTheme';
 
-interface AboutScreenProps {
-  onBack: () => void;
-}
-
-export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack }) => {
-  const colors = useWebTheme();
+export const AboutScreen: React.FC = () => {
+  const colors = useTheme();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <SettingsItem
-          icon={<ChevronLeftIcon size={22} color={colors.text} />}
-          title="关于"
-          showChevron={false}
-          onPress={onBack}
-        />
-      </View>
-      <ScrollView>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView contentContainerStyle={styles.content}>
+        {/* Logo */}
         <View style={styles.logoSection}>
           <Text style={[styles.appName, { color: colors.text }]}>SparkNoteAI</Text>
           <Text style={[styles.slogan, { color: colors.textSecondary }]}>
@@ -39,35 +24,28 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack }) => {
           <Text style={[styles.version, { color: colors.textTertiary }]}>Version 1.0.0</Text>
         </View>
 
-        <SectionHeader title="技术栈" />
-        <View style={[styles.section, { backgroundColor: colors.backgroundSecondary }]}>
-          <View style={styles.techItem}>
-            <Text style={[styles.techLabel, { color: colors.textSecondary }]}>后端</Text>
-            <Text style={[styles.techValue, { color: colors.text }]}>FastAPI + PostgreSQL + Neo4j</Text>
-          </View>
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          <View style={styles.techItem}>
-            <Text style={[styles.techLabel, { color: colors.textSecondary }]}>前端</Text>
-            <Text style={[styles.techValue, { color: colors.text }]}>React Native + Expo</Text>
-          </View>
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          <View style={styles.techItem}>
-            <Text style={[styles.techLabel, { color: colors.textSecondary }]}>AI</Text>
-            <Text style={[styles.techValue, { color: colors.text }]}>多模型大语言模型</Text>
-          </View>
+        {/* 技术栈 */}
+        <View style={[styles.card, { backgroundColor: colors.backgroundSecondary }]}>
+          <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>技术栈</Text>
+          <DetailRow label="后端" value="FastAPI + PostgreSQL + Neo4j" colors={colors} />
+          <DetailRow label="前端" value="React Native + Expo" colors={colors} />
+          <DetailRow label="AI" value="多模型大语言模型" colors={colors} isLast />
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
+const DetailRow: React.FC<{ label: string; value: string; colors: ReturnType<typeof useTheme>; isLast?: boolean }> = ({ label, value, colors, isLast }) => (
+  <View style={[styles.detailRow, !isLast && { borderBottomColor: colors.border, borderBottomWidth: 0.5 }]}>
+    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{label}</Text>
+    <Text style={[styles.detailValue, { color: colors.text }]}>{value}</Text>
+  </View>
+);
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    borderBottomWidth: 1,
-  },
+  container: { flex: 1 },
+  content: { padding: spacing.md, paddingBottom: spacing.xl },
   logoSection: {
     alignItems: 'center',
     paddingVertical: spacing.xl * 2,
@@ -85,26 +63,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: spacing.lg,
   },
-  section: {
-    marginHorizontal: spacing.md,
-    borderRadius: 12,
-    overflow: 'hidden',
+  card: { borderRadius: 12, overflow: 'hidden' },
+  groupLabel: {
+    fontSize: 13,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
   },
-  divider: {
-    height: 1,
-  },
-  techItem: {
+  detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
+    alignItems: 'center',
   },
-  techLabel: {
-    fontSize: 15,
-  },
-  techValue: {
-    fontSize: 14,
-  },
+  detailLabel: { fontSize: 15 },
+  detailValue: { fontSize: 14 },
 });
 
 export default AboutScreen;

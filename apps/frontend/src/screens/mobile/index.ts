@@ -8,3 +8,4 @@ export { NoteDetailScreen } from './NoteDetailScreen';
 export { ServerConfigScreen } from './ServerConfigScreen';
 export { NotificationSettingsScreen } from './NotificationSettingsScreen';
 export { DataManagementScreen } from './DataManagementScreen';
+export { TasksScreen } from './TasksScreen';

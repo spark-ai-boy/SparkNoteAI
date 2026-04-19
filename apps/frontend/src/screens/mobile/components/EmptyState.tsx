@@ -3,7 +3,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { spacing } from '../../../theme';
-import { useWebTheme } from '../../../hooks/useWebTheme';
+import { useTheme } from '../../../hooks/useTheme';
 
 interface EmptyStateProps {
   icon: React.ReactNode;
@@ -20,7 +20,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   actionLabel,
   onAction,
 }) => {
-  const colors = useWebTheme();
+  const colors = useTheme();
 
   return (
     <View style={styles.container}>
@@ -54,12 +54,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '600',
     marginBottom: spacing.sm,
   },
   description: {
-    fontSize: 14,
+    fontSize: 15,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: spacing.xl,
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
   actionButton: {
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
-    borderRadius: 8,
+    borderRadius: 13,
   },
   actionText: {
     fontSize: 15,

@@ -1,16 +1,18 @@
-// 主标签导航
+// 主导航 — 手机端：单页栈 + 右上角入口；Web/桌面端：多 Tab
 
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, View, StyleSheet, Platform, TouchableOpacity } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Text, View, StyleSheet, Platform } from 'react-native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import {
   NotesScreen,
   SettingsScreen,
   KnowledgeGraphScreen,
+  TasksScreen as MobileTasksScreen,
 } from '../screens/mobile';
 import { AIAgentScreen } from '../screens/mobile/AIAgentScreen';
+import { SettingsStack } from './SettingsStack';
 import {
   FragmentsScreen,
   MindmapScreen,
@@ -18,13 +20,13 @@ import {
 } from '../screens/web';
 import { KnowledgeGraphScreen as WebKnowledgeGraphScreen } from '../screens/web/KnowledgeGraphScreen';
 import { MainTabParamList } from './types';
-import { useWebTheme } from '../hooks/useWebTheme';
+import { useTheme } from '../hooks/useTheme';
 import { BotIcon, NetworkIcon, BookIcon, SettingsIcon } from '../components/icons';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 // Web 端 emoji 图标
-const TabIcon: React.FC<{ name: string; focused: boolean; colors: ReturnType<typeof useWebTheme> }> = ({ name, focused, colors }) => {
+const TabIcon: React.FC<{ name: string; focused: boolean; colors: ReturnType<typeof useTheme> }> = ({ name, focused, colors }) => {
   const icons: Record<string, string> = {
     Notes: '📝',
     Fragments: '📄',
@@ -44,98 +46,56 @@ const TabIcon: React.FC<{ name: string; focused: boolean; colors: ReturnType<typ
   );
 };
 
-// 手机端 Tab 栏自定义渲染（图标 + 文字）
-const MobileTabBar: React.FC<{
-  state: any;
-  descriptors: any;
-  navigation: any;
-  insets: { bottom: number };
-  colors: ReturnType<typeof useWebTheme>;
-}> = ({ state, descriptors, navigation, insets, colors }) => {
-  const iconMap: Record<string, React.FC<{ focused: boolean; color: string }>> = {
-    AIAgent: ({ focused, color }) => <BotIcon size={22} strokeWidth={focused ? 2.5 : 1.5} color={color} />,
-    KnowledgeGraph: ({ focused, color }) => <NetworkIcon size={22} strokeWidth={focused ? 2.5 : 1.5} color={color} />,
-    Notes: ({ focused, color }) => <BookIcon size={22} strokeWidth={focused ? 2.5 : 1.5} color={color} />,
-    Settings: ({ focused, color }) => <SettingsIcon size={22} strokeWidth={focused ? 2.5 : 1.5} color={color} />,
-  };
+// 手机端：笔记栈（笔记为主入口，AI/图谱/设置在右上角）
+const MobileNotesStack = createNativeStackNavigator();
+
+export const MobileNotesStackScreen: React.FC = () => {
+  const colors = useTheme();
 
   return (
-    <View style={[
-      styles.tabBarContainer,
-      {
-        backgroundColor: colors.background,
-        borderTopColor: colors.border,
-        paddingBottom: Math.max(insets.bottom, 8),
-      },
-    ]}>
-      {state.routes.map((route: any, index: number) => {
-        const focused = state.index === index;
-        const { options } = descriptors[route.key];
-        const label = options.tabBarLabel ?? options.title ?? route.name;
-
-        const tintColor = focused ? colors.primary : colors.textTertiary;
-
-        const IconComponent = iconMap[route.name];
-
-        return (
-          <TouchableOpacity
-            key={route.key}
-            style={styles.tabItem}
-            onPress={() => navigation.navigate(route.name)}
-            activeOpacity={0.7}
-          >
-            {IconComponent && <IconComponent focused={focused} color={tintColor} />}
-            <Text style={[styles.tabLabel, { color: tintColor }]}>{label}</Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
+    <MobileNotesStack.Navigator
+      screenOptions={{
+        headerTintColor: colors.primary,
+        headerTitleStyle: { fontSize: 17, fontWeight: '600' },
+        animation: 'slide_from_right',
+      }}
+    >
+      <MobileNotesStack.Screen
+        name="NotesHome"
+        component={NotesScreen}
+        options={{ title: 'SparkNote AI' }}
+      />
+      <MobileNotesStack.Screen
+        name="AIAgent"
+        component={AIAgentScreen}
+        options={{ title: 'AI 助手' }}
+      />
+      <MobileNotesStack.Screen
+        name="KnowledgeGraph"
+        component={KnowledgeGraphScreen}
+        options={{ title: '知识图谱' }}
+      />
+      <MobileNotesStack.Screen
+        name="Settings"
+        component={SettingsStack}
+        options={{ headerShown: false }}
+      />
+      <MobileNotesStack.Screen
+        name="Tasks"
+        component={MobileTasksScreen}
+        options={{ title: '后台任务' }}
+      />
+    </MobileNotesStack.Navigator>
   );
 };
 
 export const MainNavigator: React.FC = () => {
-  const colors = useWebTheme();
-  const insets = useSafeAreaInsets();
+  const colors = useTheme();
   const isMobile = Platform.OS !== 'web';
 
-  // 手机端：AI 助手 | 笔记 | 知识图谱 | 设置
+  // 手机端：单页栈 + 右上角入口
   if (isMobile) {
-    return (
-      <Tab.Navigator
-        initialRouteName="AIAgent"
-        screenOptions={{
-          headerShown: false,
-        }}
-        tabBar={(props) => (
-          <MobileTabBar
-            {...props}
-            insets={insets}
-            colors={colors}
-          />
-        )}
-      >
-        <Tab.Screen
-          name="AIAgent"
-          component={AIAgentScreen}
-          options={{ tabBarLabel: 'AI 助手' }}
-        />
-        <Tab.Screen
-          name="Notes"
-          component={NotesScreen}
-          options={{ tabBarLabel: '笔记' }}
-        />
-        <Tab.Screen
-          name="KnowledgeGraph"
-          component={KnowledgeGraphScreen}
-          options={{ tabBarLabel: '图谱' }}
-        />
-        <Tab.Screen
-          name="Settings"
-          component={SettingsScreen}
-          options={{ tabBarLabel: '设置' }}
-        />
-      </Tab.Navigator>
-    );
+    return <MobileNotesStackScreen />;
   }
 
   // Web/Electron 端：原有布局
@@ -187,27 +147,12 @@ export const MainNavigator: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  tabBarContainer: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    paddingTop: 6,
-  },
-  tabItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-  },
-  tabLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
   tabBar: {
     borderTopWidth: 1,
-    height: 56,
+    height: 44,
   },
   tabBarLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '500',
     marginTop: 4,
   },

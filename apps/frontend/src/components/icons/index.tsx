@@ -78,6 +78,7 @@ import {
   Lightbulb,
   Layers,
   Users,
+  Mail,
   type LucideProps,
 } from 'lucide-react-native';
 
@@ -158,5 +159,6 @@ export { ListOrdered as ListOrderedIcon };
 export { Lightbulb as LightbulbIcon };
 export { Layers as LayersIcon };
 export { Users as UsersIcon };
+export { Mail as MailIcon };
 
 export type { LucideProps as IconProps };

@@ -1,20 +1,21 @@
 // 笔记列表（手机端）
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
   TextInput,
   RefreshControl,
+  Modal,
+  Text,
+  Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { spacing, typography } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
-import { PlusIcon, SearchIcon, CloseIcon, BookIcon } from '../../components/icons';
+import { spacing } from '../../theme';
+import { useTheme } from '../../hooks/useTheme';
+import { PlusIcon, CloseIcon, BookIcon, MoreHorizontalIcon, BotIcon, NetworkIcon, SettingsIcon, UploadIcon, FileTextIcon, SearchIcon } from '../../components/icons';
 import { NoteCard } from './components/NoteCard';
 import { EmptyState } from './components/EmptyState';
 import { ImportDialog } from '../../components/ImportDialog';
@@ -22,17 +23,89 @@ import { NoteDetailScreen } from './NoteDetailScreen';
 import { notesApi, type Note } from '../../api/note';
 import { createImportTask } from '../../api/importTask';
 import { useToast } from '../../hooks/useToast';
+import { useToastStore } from '../../stores/toastStore';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+type MobileNotesStackParamList = {
+  NotesHome: undefined;
+  AIAgent: undefined;
+  KnowledgeGraph: undefined;
+  Settings: undefined;
+  Tasks: undefined;
+  NoteDetail: { noteId: number };
+};
+
+type NavProp = NativeStackNavigationProp<MobileNotesStackParamList, 'NotesHome'>;
+
+const menuItems = [
+  { key: 'create', label: '新建笔记', icon: PlusIcon },
+  { key: 'import', label: '导入笔记', icon: UploadIcon },
+  { key: 'ai', label: 'AI 助手', icon: BotIcon },
+  { key: 'graph', label: '知识图谱', icon: NetworkIcon },
+  { key: 'tasks', label: '后台任务', icon: FileTextIcon },
+  { key: 'settings', label: '设置', icon: SettingsIcon },
+];
 
 export const NotesScreen: React.FC = () => {
-  const colors = useWebTheme();
+  const navigation = useNavigation<NavProp>();
+  const colors = useTheme();
   const toast = useToast();
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [viewingNote, setViewingNote] = useState<number | null>(null);
+  const menuButtonRef = useRef<any>(null);
+  const [menuRect, setMenuRect] = useState({ top: 0, right: 0 });
+
+  const handleMenuAction = (key: string) => {
+    setShowMenu(false);
+    switch (key) {
+      case 'create':
+        handleCreateNote();
+        break;
+      case 'import':
+        setShowImportDialog(true);
+        break;
+      case 'ai':
+        navigation.navigate('AIAgent');
+        break;
+      case 'graph':
+        navigation.navigate('KnowledgeGraph');
+        break;
+      case 'tasks':
+        navigation.navigate('Tasks');
+        break;
+      case 'settings':
+        navigation.navigate('Settings');
+        break;
+    }
+  };
+
+  const handleShowMenu = () => {
+    if (menuButtonRef.current) {
+      menuButtonRef.current.measureInWindow((x: number, y: number, w: number, h: number) => {
+        setMenuRect({ top: y + h, right: Dimensions.get('window').width - x - w });
+        setShowMenu(true);
+      });
+    }
+  };
+
+  // 右上角按钮
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity ref={menuButtonRef} onPress={handleShowMenu} activeOpacity={0.5}>
+            <PlusIcon size={22} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+      ),
+    });
+  }, [navigation, colors.textSecondary]);
 
   const fetchNotes = useCallback(async () => {
     try {
@@ -40,16 +113,16 @@ export const NotesScreen: React.FC = () => {
       const res = await notesApi.getNotes({ page: 1, size: 50 });
       setNotes(res.items);
     } catch (e: any) {
-      toast.error('获取笔记失败');
+      useToastStore.getState().showError('获取笔记失败');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     fetchNotes();
-  }, [fetchNotes]);
+  }, []);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -109,39 +182,25 @@ export const NotesScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        {showSearch ? (
-          <View style={styles.searchHeader}>
-            <TextInput
-              style={[styles.searchInput, { backgroundColor: colors.backgroundSecondary, color: colors.text }]}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="搜索笔记..."
-              placeholderTextColor={colors.textTertiary}
-              autoFocus
-            />
-            <TouchableOpacity onPress={() => { setShowSearch(false); setSearchQuery(''); }}>
-              <CloseIcon size={20} color={colors.textSecondary} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.searchBar}>
+        <View style={[styles.searchInputWrap, { backgroundColor: '#E5E5EA' }]}>
+          <SearchIcon size={16} color={colors.textTertiary} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="搜索笔记..."
+            placeholderTextColor={colors.textTertiary}
+            autoCapitalize="none"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} activeOpacity={0.6} style={{ padding: 4 }}>
+              <CloseIcon size={14} color={colors.textTertiary} />
             </TouchableOpacity>
-          </View>
-        ) : (
-          <>
-            <Text style={[styles.title, { color: colors.text }]}>笔记</Text>
-            <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.actionBtn} onPress={() => setShowSearch(true)}>
-                <SearchIcon size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionBtn} onPress={handleCreateNote}>
-                <PlusIcon size={20} color={colors.primary} />
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
+          )}
+        </View>
       </View>
-
-      {/* Note List */}
       <FlatList
         data={filteredNotes}
         renderItem={renderNoteItem}
@@ -159,63 +218,72 @@ export const NotesScreen: React.FC = () => {
             <EmptyState
               icon={searchQuery ? <SearchIcon size={48} color={colors.textTertiary} /> : <BookIcon size={48} color={colors.textTertiary} />}
               title={searchQuery ? '未找到相关笔记' : '暂无笔记'}
-              description={searchQuery ? '尝试其他关键词' : '点击右上角 + 创建第一篇笔记'}
+              description={searchQuery ? '尝试其他关键词' : '点击右上角 ··· 创建笔记'}
             />
           ) : null
         }
       />
 
-      {/* Import Dialog */}
       <ImportDialog
         visible={showImportDialog}
         onClose={() => setShowImportDialog(false)}
         onImport={handleImport}
       />
-    </SafeAreaView>
+
+      {/* iOS 风格弹出菜单 */}
+      <Modal visible={showMenu} transparent animationType="fade" onRequestClose={() => setShowMenu(false)}>
+        <View style={styles.menuOverlay}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setShowMenu(false)} />
+          <View
+            style={[
+              styles.menuContainer,
+              {
+                backgroundColor: colors.backgroundSecondary,
+                borderColor: colors.border,
+                top: menuRect.top,
+                right: menuRect.right,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 8,
+              },
+            ]}
+            onStartShouldSetResponder={() => true}
+          >
+            {menuItems.map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <TouchableOpacity
+                  key={item.key}
+                  style={styles.menuItem}
+                  onPress={() => handleMenuAction(item.key)}
+                  activeOpacity={0.6}
+                >
+                  <View style={styles.menuIconWrap}>
+                    <Icon size={18} color={colors.textSecondary} />
+                  </View>
+                  <Text style={[styles.menuLabel, { color: colors.text }]}>{item.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    minHeight: 56,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  actionBtn: {
-    padding: spacing.xs,
-  },
-  searchHeader: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  searchInput: {
-    flex: 1,
-    borderRadius: 8,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    fontSize: 15,
-  },
-  listContent: {
-    padding: spacing.md,
-    paddingBottom: spacing.xl,
-  },
+  container: { flex: 1 },
+  searchBar: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  searchInputWrap: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, paddingHorizontal: spacing.sm, paddingVertical: 6, gap: spacing.xs },
+  searchInput: { flex: 1, fontSize: 15, paddingVertical: spacing.xs },
+  listContent: { padding: spacing.md, paddingBottom: spacing.xl },
+  menuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.2)' },
+  menuContainer: { borderRadius: 12, borderWidth: 0.5, overflow: 'hidden', position: 'absolute', width: 200, paddingVertical: 6 },
+  menuItem: { flexDirection: 'row', alignItems: 'center', height: 40, paddingHorizontal: spacing.md },
+  menuIconWrap: { width: 24, height: 24, justifyContent: 'center', alignItems: 'center' },
+  menuLabel: { fontSize: 15, flex: 1 },
 });
 
 export default NotesScreen;

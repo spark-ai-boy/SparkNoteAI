@@ -1,18 +1,12 @@
-// 主题设置（手机端）
+// 界面设置（手机端）— iOS 分组卡片风格
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 
 import { spacing } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
+import { useTheme } from '../../hooks/useTheme';
 import { useInterfaceSettingsStore } from '../../stores/interfaceSettingsStore';
-import { SettingsItem } from './components/SettingsItem';
-import { ChevronLeftIcon, SunIcon, MoonIcon, MonitorIcon, CheckIcon } from '../../components/icons';
-
-interface InterfaceSettingsScreenProps {
-  onBack: () => void;
-}
+import { SunIcon, MoonIcon, MonitorIcon, CheckIcon } from '../../components/icons';
 
 const THEMES: { id: string; label: string; icon: React.ReactNode }[] = [
   { id: 'light', label: '浅色', icon: <SunIcon size={20} /> },
@@ -20,72 +14,67 @@ const THEMES: { id: string; label: string; icon: React.ReactNode }[] = [
   { id: 'system', label: '跟随系统', icon: <MonitorIcon size={20} /> },
 ];
 
-export const InterfaceSettingsScreen: React.FC<InterfaceSettingsScreenProps> = ({ onBack }) => {
-  const colors = useWebTheme();
+export const InterfaceSettingsScreen: React.FC = () => {
+  const colors = useTheme();
   const { theme, setTheme } = useInterfaceSettingsStore();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <SettingsItem
-          icon={<ChevronLeftIcon size={22} color={colors.text} />}
-          title="主题设置"
-          showChevron={false}
-          onPress={onBack}
-        />
-      </View>
-      <ScrollView>
-        <View style={[styles.section, { backgroundColor: colors.backgroundSecondary, margin: spacing.md, borderRadius: 12, overflow: 'hidden' }]}>
-          {THEMES.map((t, i) => (
-            <React.Fragment key={t.id}>
-              {i > 0 && <View style={[styles.divider, { backgroundColor: colors.border }]} />}
-              <TouchableOpacity
-                style={styles.themeItem}
-                onPress={() => setTheme(t.id as any)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.themeLeft}>
-                  {t.icon}
-                  <Text style={[styles.themeLabel, { color: colors.text }]}>{t.label}</Text>
-                </View>
-                {theme === t.id && (
-                  <CheckIcon size={20} color={colors.primary} />
-                )}
-              </TouchableOpacity>
-            </React.Fragment>
-          ))}
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={[styles.card, { backgroundColor: colors.backgroundSecondary }]}>
+          {THEMES.map((t, i) => {
+            const isLast = i === THEMES.length - 1;
+            const isSelected = theme === t.id;
+            return (
+              <View key={t.id}>
+                <Pressable
+                  style={styles.row}
+                  onPress={() => setTheme(t.id as any)}
+                >
+                  <View style={styles.rowLeft}>
+                    {t.icon}
+                    <Text style={[styles.label, { color: colors.text }]}>{t.label}</Text>
+                  </View>
+                  {isSelected && <CheckIcon size={20} color={colors.primary} />}
+                </Pressable>
+                {!isLast && <View style={[styles.divider, { backgroundColor: colors.border }]} />}
+              </View>
+            );
+          })}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1 },
+  content: {
+    padding: spacing.md,
+    paddingBottom: spacing.xl,
   },
-  header: {
-    borderBottomWidth: 1,
+  card: {
+    borderRadius: 12,
+    overflow: 'hidden',
   },
-  section: {},
-  divider: {
-    height: 1,
-  },
-  themeItem: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: 12,
   },
-  themeLeft: {
+  rowLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
   },
-  themeLabel: {
-    fontSize: 15,
-    fontWeight: '500',
+  label: {
+    fontSize: 17,
+  },
+  divider: {
+    height: 0.5,
+    marginLeft: 32,
   },
 });
 

@@ -3,7 +3,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { spacing } from '../../../theme';
-import { useWebTheme } from '../../../hooks/useWebTheme';
+import { useTheme } from '../../../hooks/useTheme';
 import { ChevronRightIcon } from '../../../components/icons';
 
 interface SettingsItemProps {
@@ -13,6 +13,7 @@ interface SettingsItemProps {
   destructive?: boolean;
   onPress?: () => void;
   showChevron?: boolean;
+  titleStyle?: Record<string, any>;
 }
 
 export const SettingsItem: React.FC<SettingsItemProps> = ({
@@ -22,8 +23,9 @@ export const SettingsItem: React.FC<SettingsItemProps> = ({
   destructive,
   onPress,
   showChevron = true,
+  titleStyle,
 }) => {
-  const colors = useWebTheme();
+  const colors = useTheme();
   const textColor = destructive ? colors.error : colors.text;
 
   return (
@@ -38,7 +40,7 @@ export const SettingsItem: React.FC<SettingsItemProps> = ({
         {icon}
       </View>
       <View style={styles.textContainer}>
-        <Text style={[styles.title, { color: textColor }]}>{title}</Text>
+        <Text style={[styles.title, { color: textColor }, titleStyle]}>{title}</Text>
         {subtitle ? (
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
         ) : null}
@@ -55,7 +57,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: 12,
   },
   iconContainer: {
     alignItems: 'center',
@@ -67,11 +69,10 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md,
   },
   title: {
-    fontSize: 15,
-    fontWeight: '500',
+    fontSize: 17,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 13,
     marginTop: 2,
   },
 });

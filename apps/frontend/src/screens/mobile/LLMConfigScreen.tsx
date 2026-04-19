@@ -1,29 +1,26 @@
-// LLM 配置管理（手机端）
+// LLM 配置管理（手机端）— iOS 分组卡片风格
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
   ActivityIndicator,
   Modal,
   TextInput,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { SettingsStackParamList } from '../../navigation/SettingsStack';
 
 import { spacing } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
+import { useTheme } from '../../hooks/useTheme';
 import { useLLMConfigStore } from '../../stores/llmConfigStore';
 import { LLMIntegration } from '../../api/llmConfig';
-import { SettingsItem } from './components/SettingsItem';
-import { ChevronLeftIcon, PlusIcon, CheckIcon, TrashIcon, SparklesIcon } from '../../components/icons';
-
-interface LLMConfigScreenProps {
-  onBack: () => void;
-}
+import { PlusIcon, CheckIcon, TrashIcon, SparklesIcon, CloseIcon } from '../../components/icons';
 
 const PROVIDER_OPTIONS = [
   { id: 'openai', label: 'OpenAI', defaultModel: 'gpt-4o-mini' },
@@ -34,14 +31,27 @@ const PROVIDER_OPTIONS = [
   { id: 'anthropic_compatible', label: 'Anthropic 兼容', defaultModel: '' },
 ];
 
-export const LLMConfigScreen: React.FC<LLMConfigScreenProps> = ({ onBack }) => {
-  const colors = useWebTheme();
+type NavProp = NativeStackNavigationProp<SettingsStackParamList, 'LLMConfig'>;
+
+export const LLMConfigScreen: React.FC = () => {
+  const navigation = useNavigation<NavProp>();
+  const colors = useTheme();
   const { configs, isLoading, fetchConfigs, createConfig, deleteConfig, setDefault, testConnection } = useLLMConfigStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     fetchConfigs();
   }, []);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable onPress={() => setShowCreateModal(true)} style={{ marginRight: 16 }}>
+          <PlusIcon size={22} color={colors.primary} />
+        </Pressable>
+      ),
+    });
+  }, [navigation, colors.primary]);
 
   const handleCreate = async (data: any) => {
     try {
@@ -73,71 +83,61 @@ export const LLMConfigScreen: React.FC<LLMConfigScreenProps> = ({ onBack }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <View style={styles.headerRow}>
-          <SettingsItem
-            icon={<ChevronLeftIcon size={22} color={colors.text} />}
-            title="大模型配置"
-            showChevron={false}
-            onPress={onBack}
-          />
-          <TouchableOpacity style={styles.addButton} onPress={() => setShowCreateModal(true)}>
-            <PlusIcon size={20} color={colors.primary} />
-          </TouchableOpacity>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {configs.length === 0 && !isLoading ? (
+        <View style={styles.center}>
+          <SparklesIcon size={48} color={colors.textTertiary} />
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>暂无配置</Text>
+          <Pressable
+            style={[styles.createButton, { backgroundColor: colors.primary }]}
+            onPress={() => setShowCreateModal(true)}
+          >
+            <Text style={[styles.createButtonText, { color: colors.primaryForeground }]}>添加配置</Text>
+          </Pressable>
         </View>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content}>
-        {isLoading ? (
-          <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /></View>
-        ) : configs.length === 0 ? (
-          <View style={styles.center}>
-            <SparklesIcon size={48} color={colors.textTertiary} />
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>暂无配置</Text>
-            <TouchableOpacity
-              style={[styles.createButton, { backgroundColor: colors.primary }]}
-              onPress={() => setShowCreateModal(true)}
-            >
-              <Text style={[styles.createButtonText, { color: colors.primaryForeground }]}>添加配置</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={[styles.section, { backgroundColor: colors.backgroundSecondary }]}>
-            {configs.map((cfg, i) => (
-              <React.Fragment key={cfg.config_key}>
-                {i > 0 && <View style={[styles.divider, { backgroundColor: colors.border }]} />}
-                <View style={styles.configItem}>
-                  <View style={styles.configInfo}>
-                    <Text style={[styles.configName, { color: colors.text }]}>{cfg.name}</Text>
-                    <Text style={[styles.configModel, { color: colors.textSecondary }]}>
-                      {cfg.provider} · {cfg.config?.model || '未设置'}
-                    </Text>
-                    {cfg.is_default && (
-                      <View style={[styles.defaultBadge, { backgroundColor: colors.primary }]}>
-                        <Text style={[styles.defaultBadgeText, { color: colors.primaryForeground }]}>默认</Text>
-                      </View>
-                    )}
+      ) : (
+        <ScrollView contentContainerStyle={styles.content}>
+          {isLoading && (
+            <View style={styles.loadingRow}><ActivityIndicator size="large" color={colors.primary} /></View>
+          )}
+          <View style={[styles.card, { backgroundColor: colors.backgroundSecondary }]}>
+            {configs.map((cfg, i) => {
+              const isLast = i === configs.length - 1;
+              return (
+                <View key={cfg.config_key}>
+                  <View style={styles.configItem}>
+                    <View style={styles.configInfo}>
+                      <Text style={[styles.configName, { color: colors.text }]}>{cfg.name}</Text>
+                      <Text style={[styles.configModel, { color: colors.textSecondary }]}>
+                        {cfg.provider} · {cfg.config?.model || '未设置'}
+                      </Text>
+                      {cfg.is_default && (
+                        <View style={[styles.defaultBadge, { backgroundColor: colors.primary }]}>
+                          <Text style={[styles.defaultBadgeText, { color: colors.primaryForeground }]}>默认</Text>
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.configActions}>
+                      {!cfg.is_default && (
+                        <Pressable style={styles.actionBtn} onPress={() => setDefault(cfg.config_key)}>
+                          <CheckIcon size={18} color={colors.success} />
+                        </Pressable>
+                      )}
+                      <Pressable style={styles.actionBtn} onPress={() => handleTest(cfg.config_key)}>
+                        <SparklesIcon size={18} color={colors.blue} />
+                      </Pressable>
+                      <Pressable style={styles.actionBtn} onPress={() => handleDelete(cfg.config_key)}>
+                        <TrashIcon size={18} color={colors.error} />
+                      </Pressable>
+                    </View>
                   </View>
-                  <View style={styles.configActions}>
-                    {!cfg.is_default && (
-                      <TouchableOpacity style={styles.actionBtn} onPress={() => setDefault(cfg.config_key)}>
-                        <CheckIcon size={18} color={colors.success} />
-                      </TouchableOpacity>
-                    )}
-                    <TouchableOpacity style={styles.actionBtn} onPress={() => handleTest(cfg.config_key)}>
-                      <SparklesIcon size={18} color={colors.blue} />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionBtn} onPress={() => handleDelete(cfg.config_key)}>
-                      <TrashIcon size={18} color={colors.error} />
-                    </TouchableOpacity>
-                  </View>
+                  {!isLast && <View style={[styles.divider, { backgroundColor: colors.border }]} />}
                 </View>
-              </React.Fragment>
-            ))}
+              );
+            })}
           </View>
-        )}
-      </ScrollView>
+        </ScrollView>
+      )}
 
       {/* 创建配置 Modal */}
       <Modal visible={showCreateModal} animationType="slide" transparent onRequestClose={() => setShowCreateModal(false)}>
@@ -145,9 +145,9 @@ export const LLMConfigScreen: React.FC<LLMConfigScreenProps> = ({ onBack }) => {
           <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>添加配置</Text>
-              <TouchableOpacity onPress={() => setShowCreateModal(false)}>
-                <ChevronLeftIcon size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
+              <Pressable onPress={() => setShowCreateModal(false)}>
+                <CloseIcon size={24} color={colors.textSecondary} />
+              </Pressable>
             </View>
             <CreateConfigForm
               providers={PROVIDER_OPTIONS}
@@ -158,13 +158,13 @@ export const LLMConfigScreen: React.FC<LLMConfigScreenProps> = ({ onBack }) => {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
 interface CreateConfigFormProps {
   providers: typeof PROVIDER_OPTIONS;
-  colors: ReturnType<typeof useWebTheme>;
+  colors: ReturnType<typeof useTheme>;
   onSubmit: (data: any) => void;
   onCancel: () => void;
 }
@@ -211,61 +211,73 @@ const CreateConfigForm: React.FC<CreateConfigFormProps> = ({ providers, colors, 
 
   return (
     <ScrollView style={styles.form}>
-      <Text style={[styles.label, { color: colors.text }]}>配置名称</Text>
-      <TextInput style={[styles.input, { backgroundColor: colors.backgroundSecondary, color: colors.text }]} value={name} onChangeText={setName} placeholder="如: 我的 OpenAI" placeholderTextColor={colors.textTertiary} />
-
-      <Text style={[styles.label, { color: colors.text }]}>提供商</Text>
-      <View style={styles.providerGrid}>
-        {providers.map((p) => (
-          <TouchableOpacity key={p.id} style={[styles.providerBtn, { backgroundColor: provider === p.id ? colors.primary : colors.backgroundSecondary, borderColor: provider === p.id ? colors.primary : colors.border }]} onPress={() => handleProviderChange(p.id)}>
-            <Text style={{ color: provider === p.id ? colors.primaryForeground : colors.text }}>{p.label}</Text>
-          </TouchableOpacity>
-        ))}
+      <FormInput label="配置名称" value={name} onChangeText={setName} placeholder="如: 我的 OpenAI" colors={colors} />
+      <FormInput label="提供商" value={provider} editable={false} colors={colors} />
+      <View style={styles.providerGridWrap}>
+        <View style={styles.providerGrid}>
+          {providers.map((p) => (
+            <Pressable key={p.id} style={[styles.providerBtn, { backgroundColor: provider === p.id ? colors.primary : colors.backgroundSecondary, borderColor: provider === p.id ? colors.primary : colors.border }]} onPress={() => handleProviderChange(p.id)}>
+              <Text style={{ color: provider === p.id ? colors.primaryForeground : colors.text, fontSize: 13 }}>{p.label}</Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
-
-      <Text style={[styles.label, { color: colors.text }]}>模型</Text>
-      <TextInput style={[styles.input, { backgroundColor: colors.backgroundSecondary, color: colors.text }]} value={model} onChangeText={setModel} placeholder="模型 ID" placeholderTextColor={colors.textTertiary} />
-
-      <Text style={[styles.label, { color: colors.text }]}>API Key</Text>
-      <TextInput style={[styles.input, { backgroundColor: colors.backgroundSecondary, color: colors.text }]} value={apiKey} onChangeText={setApiKey} placeholder="sk-..." secureTextEntry placeholderTextColor={colors.textTertiary} />
-
+      <FormInput label="模型" value={model} onChangeText={setModel} placeholder="模型 ID" colors={colors} />
+      <FormInput label="API Key" value={apiKey} onChangeText={setApiKey} placeholder="sk-..." secureTextEntry colors={colors} />
       {isCompatible && (
-        <>
-          <Text style={[styles.label, { color: colors.text }]}>Base URL</Text>
-          <TextInput style={[styles.input, { backgroundColor: colors.backgroundSecondary, color: colors.text }]} value={baseUrl} onChangeText={setBaseUrl} placeholder="http://localhost:11434/v1" placeholderTextColor={colors.textTertiary} />
-        </>
+        <FormInput label="Base URL" value={baseUrl} onChangeText={setBaseUrl} placeholder="http://localhost:11434/v1" colors={colors} />
       )}
       {isAzure && (
-        <>
-          <Text style={[styles.label, { color: colors.text }]}>Endpoint</Text>
-          <TextInput style={[styles.input, { backgroundColor: colors.backgroundSecondary, color: colors.text }]} value={endpoint} onChangeText={setEndpoint} placeholder="https://xxx.openai.azure.com" placeholderTextColor={colors.textTertiary} />
-        </>
+        <FormInput label="Endpoint" value={endpoint} onChangeText={setEndpoint} placeholder="https://xxx.openai.azure.com" colors={colors} />
       )}
 
       <View style={styles.formButtons}>
-        <TouchableOpacity style={[styles.formBtn, { backgroundColor: colors.backgroundSecondary }]} onPress={onCancel}>
-          <Text style={{ color: colors.text }}>取消</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.formBtn, { backgroundColor: colors.primary }]} onPress={handleSubmit} disabled={saving}>
-          <Text style={{ color: colors.primaryForeground }}>{saving ? '保存中...' : '保存'}</Text>
-        </TouchableOpacity>
+        <Pressable style={[styles.formBtn, { backgroundColor: colors.backgroundSecondary }]} onPress={onCancel}>
+          <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>取消</Text>
+        </Pressable>
+        <Pressable style={[styles.formBtn, { backgroundColor: colors.primary }]} onPress={handleSubmit} disabled={saving}>
+          <Text style={{ color: colors.primaryForeground, fontSize: 15, fontWeight: '600' }}>{saving ? '保存中...' : '保存'}</Text>
+        </Pressable>
       </View>
     </ScrollView>
   );
 };
 
+const FormInput: React.FC<{
+  label: string;
+  value: string;
+  onChangeText?: (t: string) => void;
+  placeholder?: string;
+  secureTextEntry?: boolean;
+  editable?: boolean;
+  colors: ReturnType<typeof useTheme>;
+}> = ({ label, value, onChangeText, placeholder, secureTextEntry, editable = true, colors }) => (
+  <View style={styles.formField}>
+    <Text style={[styles.formLabel, { color: colors.textSecondary }]}>{label}</Text>
+    <View style={[styles.formInputWrap, { backgroundColor: colors.backgroundSecondary }]}>
+      <TextInput
+        style={[styles.formInput, { color: editable ? colors.text : colors.textSecondary }]}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        secureTextEntry={secureTextEntry}
+        editable={editable}
+        placeholderTextColor={colors.textTertiary}
+      />
+    </View>
+  </View>
+);
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { borderBottomWidth: 1 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md },
-  addButton: { padding: spacing.xs },
-  content: { padding: spacing.md },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 300 },
+  content: { padding: spacing.md, paddingBottom: spacing.xl },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
+  loadingRow: { paddingVertical: spacing.xl },
   emptyText: { fontSize: 16, marginTop: spacing.md, marginBottom: spacing.xl },
-  createButton: { paddingHorizontal: spacing.xl, paddingVertical: spacing.md, borderRadius: 8 },
+  createButton: { paddingHorizontal: spacing.xl, paddingVertical: spacing.md, borderRadius: 10 },
   createButtonText: { fontSize: 15, fontWeight: '600' },
-  section: { borderRadius: 12, overflow: 'hidden' },
-  divider: { height: 1 },
+  card: { borderRadius: 12, overflow: 'hidden' },
+  divider: { height: 0.5, marginLeft: spacing.md },
   configItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.md },
   configInfo: { flex: 1 },
   configName: { fontSize: 15, fontWeight: '600' },
@@ -274,17 +286,22 @@ const styles = StyleSheet.create({
   defaultBadgeText: { fontSize: 11, fontWeight: '600' },
   configActions: { flexDirection: 'row', gap: spacing.sm },
   actionBtn: { padding: spacing.xs },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContainer: { borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '90%' },
+
+  // Modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalContainer: { borderRadius: 16, margin: 20, maxHeight: '90%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderBottomWidth: 1 },
   modalTitle: { fontSize: 17, fontWeight: '600' },
   form: { padding: spacing.lg },
-  label: { fontSize: 14, fontWeight: '500', marginBottom: spacing.xs, marginTop: spacing.md },
-  input: { borderRadius: 8, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, fontSize: 15, minHeight: 44 },
+  formField: { marginBottom: spacing.md },
+  formLabel: { fontSize: 13, marginBottom: spacing.xs },
+  formInputWrap: { borderRadius: 10 },
+  formInput: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, fontSize: 15, minHeight: 44 },
+  providerGridWrap: { marginBottom: spacing.md },
   providerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  providerBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 8, borderWidth: 1 },
-  formButtons: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.xl },
-  formBtn: { flex: 1, paddingVertical: spacing.md, borderRadius: 8, alignItems: 'center' },
+  providerBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 10, borderWidth: 1 },
+  formButtons: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
+  formBtn: { flex: 1, paddingVertical: spacing.md, borderRadius: 10, alignItems: 'center' },
 });
 
 export default LLMConfigScreen;

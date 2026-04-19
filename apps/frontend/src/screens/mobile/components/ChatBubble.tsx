@@ -3,7 +3,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { spacing } from '../../../theme';
-import { useWebTheme } from '../../../hooks/useWebTheme';
+import { useTheme } from '../../../hooks/useTheme';
 
 interface ChatBubbleProps {
   message: string;
@@ -11,7 +11,7 @@ interface ChatBubbleProps {
 }
 
 export const ChatBubble: React.FC<ChatBubbleProps> = ({ message, isUser }) => {
-  const colors = useWebTheme();
+  const colors = useTheme();
 
   return (
     <View
@@ -19,7 +19,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message, isUser }) => {
         styles.bubble,
         isUser
           ? [styles.userBubble, { backgroundColor: colors.primary }]
-          : [styles.assistantBubble, { backgroundColor: colors.backgroundSecondary }],
+          : [styles.assistantBubble, { backgroundColor: isUser ? undefined : '#E9E9EB' }],
       ]}
     >
       <Text style={[styles.text, { color: isUser ? colors.primaryForeground : colors.text }]}>

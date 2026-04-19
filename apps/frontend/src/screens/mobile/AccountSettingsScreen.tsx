@@ -1,6 +1,6 @@
-// 账号设置（手机端）
+// 账号设置（手机端）— iOS 原生分组风格
 
-import React, { useState } from 'react';
+import React, { useState, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -11,39 +11,57 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { SettingsStackParamList } from '../../navigation/SettingsStack';
 
 import { spacing } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
+import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../stores/authStore';
-import * as authApi from '../../api/auth';
-import { SettingsItem } from './components/SettingsItem';
-import { ChevronLeftIcon, CheckIcon } from '../../components/icons';
+import { KeyIcon, UserIcon, MailIcon, ChevronRightIcon } from '../../components/icons';
 
-interface AccountSettingsScreenProps {
-  onBack: () => void;
-}
+type NavProp = NativeStackNavigationProp<SettingsStackParamList, 'AccountSettings'>;
 
-export const AccountSettingsScreen: React.FC<AccountSettingsScreenProps> = ({ onBack }) => {
-  const colors = useWebTheme();
-  const { user, updateUser, changePassword } = useAuthStore();
+export const AccountSettingsScreen: React.FC = () => {
+  const navigation = useNavigation<NavProp>();
+  const colors = useTheme();
+  const { user, updateUser } = useAuthStore();
   const [editingProfile, setEditingProfile] = useState(false);
   const [username, setUsername] = useState(user?.username || '');
   const [email, setEmail] = useState(user?.email || '');
   const [saving, setSaving] = useState(false);
 
-  const [changingPassword, setChangingPassword] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [changing, setChanging] = useState(false);
+  useLayoutEffect(() => {
+    if (editingProfile) {
+      navigation.setOptions({
+        headerRight: () => (
+          saving ? <ActivityIndicator size="small" color={colors.primary} /> : (
+            <TouchableOpacity activeOpacity={0.6} onPress={handleSaveProfile} style={{ paddingHorizontal: 8, paddingVertical: 6 }}>
+              <Text style={{ color: colors.primary, fontSize: 17, fontWeight: '600' }}>保存</Text>
+            </TouchableOpacity>
+          )
+        ),
+      });
+    } else {
+      navigation.setOptions({
+        headerRight: () => (
+          <TouchableOpacity activeOpacity={0.6} onPress={() => { setEditingProfile(true); setUsername(user?.username || ''); setEmail(user?.email || ''); }} style={{ paddingHorizontal: 8, paddingVertical: 6 }}>
+            <Text style={{ color: colors.primary, fontSize: 17, fontWeight: '600' }}>编辑</Text>
+          </TouchableOpacity>
+        ),
+      });
+    }
+  }, [editingProfile, saving, colors.primary, navigation, user]);
 
   const handleSaveProfile = async () => {
+    if (!username.trim()) {
+      Alert.alert('提示', '用户名不能为空');
+      return;
+    }
     setSaving(true);
     try {
-      await updateUser({ username, email });
+      await updateUser({ username: username.trim(), email: email.trim() });
       setEditingProfile(false);
-      Alert.alert('成功', '个人资料已更新');
     } catch (e: any) {
       Alert.alert('失败', e.message || '更新失败');
     } finally {
@@ -51,109 +69,91 @@ export const AccountSettingsScreen: React.FC<AccountSettingsScreenProps> = ({ on
     }
   };
 
-  const handleChangePassword = async () => {
-    if (newPassword !== confirmPassword) {
-      Alert.alert('提示', '两次输入的新密码不一致');
-      return;
-    }
-    if (newPassword.length < 6) {
-      Alert.alert('提示', '新密码至少 6 位');
-      return;
-    }
-    setChanging(true);
-    try {
-      await changePassword(currentPassword, newPassword);
-      setChangingPassword(false);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      Alert.alert('成功', '密码已修改');
-    } catch (e: any) {
-      Alert.alert('失败', e.message || '修改失败');
-    } finally {
-      setChanging(false);
-    }
-  };
-
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <SettingsItem
-          icon={<ChevronLeftIcon size={22} color={colors.text} />}
-          title="账号设置"
-          showChevron={false}
-          onPress={onBack}
-        />
-      </View>
-      <ScrollView>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView contentContainerStyle={styles.content}>
         {/* 个人资料 */}
-        <View style={[styles.section, { backgroundColor: colors.backgroundSecondary, margin: spacing.md, borderRadius: 12, overflow: 'hidden' }]}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>个人资料</Text>
-            <TouchableOpacity onPress={() => { setEditingProfile(!editingProfile); if (user) { setUsername(user.username); setEmail(user.email); } }}>
-              <Text style={[styles.editBtn, { color: colors.primary }]}>{editingProfile ? '取消' : '编辑'}</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={[styles.card, { backgroundColor: colors.backgroundSecondary }]}>
           {editingProfile ? (
-            <View style={styles.profileForm}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>用户名</Text>
-              <TextInput style={[styles.input, { backgroundColor: colors.background, color: colors.text }]} value={username} onChangeText={setUsername} />
-              <Text style={[styles.label, { color: colors.textSecondary }]}>邮箱</Text>
-              <TextInput style={[styles.input, { backgroundColor: colors.background, color: colors.text }]} value={email} onChangeText={setEmail} keyboardType="email-address" />
-              <TouchableOpacity style={[styles.saveBtn, { backgroundColor: colors.primary }]} onPress={handleSaveProfile} disabled={saving}>
-                {saving ? <ActivityIndicator color={colors.primaryForeground} /> : <><CheckIcon size={16} color={colors.primaryForeground} /><Text style={[styles.saveBtnText, { color: colors.primaryForeground }]}>保存</Text></>}
-              </TouchableOpacity>
-            </View>
+            <>
+              <Text style={[styles.editNote, { color: colors.textSecondary }]}>
+                修改个人资料
+              </Text>
+              <InputRow label="用户名" value={username} onChangeText={setUsername} colors={colors} />
+              <InputRow label="邮箱" value={email} onChangeText={setEmail} keyboardType="email-address" colors={colors} />
+            </>
           ) : (
             <>
-              <View style={styles.profileRow}><Text style={[styles.profileLabel, { color: colors.textSecondary }]}>用户名</Text><Text style={[styles.profileValue, { color: colors.text }]}>{user?.username}</Text></View>
+              <View style={styles.row}>
+                <View style={styles.rowLeft}>
+                  <UserIcon size={20} color={colors.textSecondary} />
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>用户名</Text>
+                </View>
+                <Text style={[styles.value, { color: colors.text }]}>{user?.username || ''}</Text>
+              </View>
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
-              <View style={styles.profileRow}><Text style={[styles.profileLabel, { color: colors.textSecondary }]}>邮箱</Text><Text style={[styles.profileValue, { color: colors.text }]}>{user?.email}</Text></View>
+              <View style={styles.row}>
+                <View style={styles.rowLeft}>
+                  <MailIcon size={20} color={colors.textSecondary} />
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>邮箱</Text>
+                </View>
+                <Text style={[styles.value, { color: colors.text }]}>{user?.email || ''}</Text>
+              </View>
             </>
           )}
         </View>
 
         {/* 修改密码 */}
-        <View style={[styles.section, { backgroundColor: colors.backgroundSecondary, margin: spacing.md, borderRadius: 12, overflow: 'hidden' }]}>
-          <TouchableOpacity style={styles.sectionHeader} onPress={() => setChangingPassword(!changingPassword)}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>修改密码</Text>
-            <Text style={[styles.editBtn, { color: colors.primary }]}>{changingPassword ? '收起' : '修改'}</Text>
-          </TouchableOpacity>
-          {changingPassword && (
-            <View style={styles.profileForm}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>当前密码</Text>
-              <TextInput style={[styles.input, { backgroundColor: colors.background, color: colors.text }]} value={currentPassword} onChangeText={setCurrentPassword} secureTextEntry />
-              <Text style={[styles.label, { color: colors.textSecondary }]}>新密码</Text>
-              <TextInput style={[styles.input, { backgroundColor: colors.background, color: colors.text }]} value={newPassword} onChangeText={setNewPassword} secureTextEntry />
-              <Text style={[styles.label, { color: colors.textSecondary }]}>确认新密码</Text>
-              <TextInput style={[styles.input, { backgroundColor: colors.background, color: colors.text }]} value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
-              <TouchableOpacity style={[styles.saveBtn, { backgroundColor: colors.primary }]} onPress={handleChangePassword} disabled={changing}>
-                {changing ? <ActivityIndicator color={colors.primaryForeground} /> : <><CheckIcon size={16} color={colors.primaryForeground} /><Text style={[styles.saveBtnText, { color: colors.primaryForeground }]}>修改密码</Text></>}
-              </TouchableOpacity>
+        <View style={[styles.card, { backgroundColor: colors.backgroundSecondary }]}>
+          <TouchableOpacity style={styles.passwordRow} onPress={() => navigation.navigate('ChangePassword')}>
+            <View style={styles.rowLeft}>
+              <KeyIcon size={20} color={colors.textSecondary} />
+              <Text style={[styles.label, { color: colors.text }]}>修改密码</Text>
             </View>
-          )}
+            <ChevronRightIcon size={16} color={colors.textTertiary} />
+          </TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
+const InputRow: React.FC<{
+  label: string;
+  value: string;
+  onChangeText: (t: string) => void;
+  secureTextEntry?: boolean;
+  keyboardType?: 'email-address' | 'default';
+  colors: ReturnType<typeof useTheme>;
+}> = ({ label, value, onChangeText, secureTextEntry, keyboardType, colors }) => (
+  <View style={[styles.inputRowWrap, { borderBottomColor: colors.border }]}>
+    <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{label}</Text>
+    <TextInput
+      style={[styles.input, { color: colors.text }]}
+      value={value}
+      onChangeText={onChangeText}
+      secureTextEntry={secureTextEntry}
+      keyboardType={keyboardType || 'default'}
+      placeholderTextColor={colors.textTertiary}
+      autoCapitalize="none"
+    />
+  </View>
+);
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { borderBottomWidth: 1 },
-  section: {},
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.md },
-  sectionTitle: { fontSize: 15, fontWeight: '600' },
-  editBtn: { fontSize: 14, fontWeight: '500' },
-  divider: { height: 1 },
-  profileRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.md },
-  profileLabel: { fontSize: 14 },
-  profileValue: { fontSize: 14, fontWeight: '500' },
-  profileForm: { padding: spacing.md },
-  label: { fontSize: 13, marginBottom: spacing.xs },
-  input: { borderRadius: 8, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, fontSize: 15, marginBottom: spacing.md, minHeight: 44 },
-  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.md, borderRadius: 8, marginTop: spacing.sm },
-  saveBtnText: { fontSize: 15, fontWeight: '600' },
+  content: { padding: spacing.md, paddingBottom: spacing.xl },
+  card: { borderRadius: 12, overflow: 'hidden', marginBottom: spacing.md },
+  divider: { height: 0.5, marginLeft: 48 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, minHeight: 44 },
+  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  label: { fontSize: 15 },
+  value: { fontSize: 15 },
+  editNote: { fontSize: 13, paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.xs },
+  inputRowWrap: { flexDirection: 'row', alignItems: 'center', minHeight: 44, borderBottomWidth: 0.5, paddingHorizontal: spacing.md },
+  inputLabel: { fontSize: 15, width: 70, flexShrink: 0 },
+  input: { flex: 1, fontSize: 15, textAlign: 'right', paddingVertical: spacing.sm },
+  passwordRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, minHeight: 44 },
 });
 
 export default AccountSettingsScreen;

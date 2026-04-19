@@ -1,4 +1,4 @@
-// 数据管理（手机端）
+// 数据管理（手机端）— iOS 分组卡片风格
 
 import React, { useState } from 'react';
 import {
@@ -9,21 +9,21 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { SettingsStackParamList } from '../../navigation/SettingsStack';
 
 import { spacing } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
+import { useTheme } from '../../hooks/useTheme';
 import { useToast } from '../../hooks/useToast';
 import { notesApi } from '../../api/note';
-import { SettingsItem } from './components/SettingsItem';
-import { ChevronLeftIcon, DatabaseIcon, DownloadIcon } from '../../components/icons';
+import { DatabaseIcon, DownloadIcon } from '../../components/icons';
 
-interface DataManagementScreenProps {
-  onBack: () => void;
-}
+type NavProp = NativeStackNavigationProp<SettingsStackParamList, 'DataManagement'>;
 
-export const DataManagementScreen: React.FC<DataManagementScreenProps> = ({ onBack }) => {
-  const colors = useWebTheme();
+export const DataManagementScreen: React.FC = () => {
+  const navigation = useNavigation<NavProp>();
+  const colors = useTheme();
   const toast = useToast();
   const [isExporting, setIsExporting] = useState(false);
 
@@ -45,26 +45,14 @@ export const DataManagementScreen: React.FC<DataManagementScreenProps> = ({ onBa
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <SettingsItem
-          icon={<ChevronLeftIcon size={22} color={colors.text} />}
-          title="数据管理"
-          showChevron={false}
-          onPress={onBack}
-        />
-      </View>
-
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         {/* 导出笔记 */}
-        <View style={[styles.section, { backgroundColor: colors.backgroundSecondary }]}>
-          <View style={styles.sectionHeader}>
+        <View style={[styles.card, { backgroundColor: colors.backgroundSecondary }]}>
+          <View style={styles.cardHeader}>
             <DatabaseIcon size={20} color={colors.textSecondary} />
             <Text style={[styles.sectionTitle, { color: colors.text }]}>导出笔记</Text>
           </View>
-          <Text style={[styles.desc, { color: colors.textSecondary }]}>
-            将所有笔记导出为 Markdown 格式，永久珍藏
-          </Text>
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <TouchableOpacity
             style={[styles.exportBtn, isExporting && styles.exportBtnDisabled]}
@@ -83,20 +71,18 @@ export const DataManagementScreen: React.FC<DataManagementScreenProps> = ({ onBa
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { borderBottomWidth: 1 },
   content: { padding: spacing.md, paddingBottom: spacing.xl },
-  section: { borderRadius: 12, overflow: 'hidden' },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.md },
+  card: { borderRadius: 12, overflow: 'hidden' },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.md },
   sectionTitle: { fontSize: 15, fontWeight: '600' },
-  desc: { fontSize: 14, paddingHorizontal: spacing.md, paddingBottom: spacing.md },
-  divider: { height: 1 },
-  exportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.md, margin: spacing.md, borderRadius: 8 },
+  divider: { height: 0.5, marginLeft: spacing.md },
+  exportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.md, marginHorizontal: spacing.md, marginVertical: spacing.md, borderRadius: 10 },
   exportBtnDisabled: { opacity: 0.6 },
   exportBtnText: { fontSize: 15, fontWeight: '600' },
 });

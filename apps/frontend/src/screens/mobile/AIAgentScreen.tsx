@@ -6,8 +6,8 @@ import {
   Text,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
-  ScrollView,
+  Pressable,
+  FlatList,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -15,7 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { spacing, typography } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
+import { useTheme } from '../../hooks/useTheme';
 import { LogoIcon, SendIcon } from '../../components/icons';
 import { aiAssistantApi, type ChatMessage as ApiChatMessage } from '../../api/aiAssistant';
 import { ChatBubble } from './components/ChatBubble';
@@ -28,7 +28,7 @@ interface Message {
 }
 
 export const AIAgentScreen: React.FC = () => {
-  const colors = useWebTheme();
+  const colors = useTheme();
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -36,7 +36,7 @@ export const AIAgentScreen: React.FC = () => {
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const scrollViewRef = useRef<ScrollView>(null);
+  const flatListRef = useRef<FlatList>(null);
   const streamingContentRef = useRef('');
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export const AIAgentScreen: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    scrollViewRef.current?.scrollToEnd({ animated: true });
+    flatListRef.current?.scrollToEnd({ animated: true });
   }, [messages, streamingContent]);
 
   const fetchConfig = async () => {
@@ -143,9 +143,9 @@ export const AIAgentScreen: React.FC = () => {
           </Text>
         </View>
         {messages.length > 0 && (
-          <TouchableOpacity onPress={handleClear}>
+          <Pressable onPress={handleClear}>
             <Text style={[styles.clearButtonText, { color: colors.textSecondary }]}>清空</Text>
-          </TouchableOpacity>
+          </Pressable>
         )}
         {messages.length === 0 && <View style={{ width: 32 }} />}
       </View>
@@ -167,24 +167,29 @@ export const AIAgentScreen: React.FC = () => {
             </Text>
           </View>
         ) : (
-          <ScrollView
-            ref={scrollViewRef}
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            keyExtractor={(item) => item.id}
             style={styles.chatContainer}
             contentContainerStyle={styles.chatContent}
             keyboardShouldPersistTaps="handled"
-          >
-            {messages.map((msg) => (
-              <ChatBubble key={msg.id} message={msg.content} isUser={msg.role === 'user'} />
-            ))}
-            {streamingContent ? (
-              <ChatBubble message={streamingContent} isUser={false} />
-            ) : null}
-            {isTyping && !streamingContent && (
-              <View style={[styles.typingIndicator, { alignSelf: 'flex-start' }]}>
-                <ActivityIndicator size="small" color={colors.textTertiary} />
-              </View>
+            renderItem={({ item }) => (
+              <ChatBubble message={item.content} isUser={item.role === 'user'} />
             )}
-          </ScrollView>
+            ListFooterComponent={() => (
+              <>
+                {streamingContent ? (
+                  <ChatBubble message={streamingContent} isUser={false} />
+                ) : null}
+                {isTyping && !streamingContent && (
+                  <View style={[styles.typingIndicator, { alignSelf: 'flex-start' }]}>
+                    <ActivityIndicator size="small" color={colors.textTertiary} />
+                  </View>
+                )}
+              </>
+            )}
+          />
         )}
 
         {/* Input */}
@@ -201,7 +206,7 @@ export const AIAgentScreen: React.FC = () => {
             onSubmitEditing={handleSend}
             blurOnSubmit
           />
-          <TouchableOpacity
+          <Pressable
             style={[
               styles.sendButton,
               { backgroundColor: query.trim() ? colors.primary : colors.textTertiary },
@@ -210,7 +215,7 @@ export const AIAgentScreen: React.FC = () => {
             disabled={!query.trim() || isTyping}
           >
             <SendIcon size={18} color={query.trim() ? colors.primaryForeground : colors.background} />
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
