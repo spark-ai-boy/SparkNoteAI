@@ -17,12 +17,12 @@ import {
   DatabaseIcon,
   CheckIcon,
   ChevronDownIcon,
-} from '../icons';
-import { GroupIcon } from '../common/GroupIcon';
-import { spacing } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
-import { useFeatureConfigStore } from '../../stores/featureConfigStore';
-import { FeatureSchema, type ConfigField } from '../../api/featureConfig';
+} from '../../../components/icons';
+import { GroupIcon } from '../../../components/common/GroupIcon';
+import { spacing } from '../../../theme';
+import { useWebTheme } from '../../../hooks/useWebTheme';
+import { useFeatureConfigStore } from '../../../stores/featureConfigStore';
+import { FeatureSchema, type ConfigField } from '../../../api/featureConfig';
 
 interface FeatureConfigDetailProps {
   featureId: string;

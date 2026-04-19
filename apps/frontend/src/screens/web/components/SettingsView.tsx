@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
-import { UserIcon, PaletteIcon, BellIcon, SparklesIcon, LockIcon, DatabaseIcon, InfoIcon, SettingsIcon, BookIcon, NetworkIcon, ImageIcon, ServerIcon, ChevronRightIcon } from '../icons';
-import { spacing } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
+import { UserIcon, PaletteIcon, BellIcon, SparklesIcon, LockIcon, DatabaseIcon, InfoIcon, SettingsIcon, BookIcon, NetworkIcon, ImageIcon, ServerIcon, ChevronRightIcon } from '../../../components/icons';
+import { spacing } from '../../../theme';
+import { useWebTheme } from '../../../hooks/useWebTheme';
 
 // 设置分类配置
 export interface SettingsCategory {

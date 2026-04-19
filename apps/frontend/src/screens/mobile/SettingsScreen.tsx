@@ -7,10 +7,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { spacing } from '../../theme';
 import { useWebTheme } from '../../hooks/useWebTheme';
 import { useAuthStore } from '../../stores';
-import { LLMConfigManager } from '../../components/layout/LLMConfigManager';
-import PrivacySecurityScreen from './PrivacySecurityScreen';
-import InterfaceSettingsScreen from './InterfaceSettingsScreen';
-import { ConfirmDialog } from '../../components/layout/ConfirmDialog';
+import { LLMConfigManager } from '../web/components/LLMConfigManager';
+import PrivacySecurityScreen from '../web/PrivacySecurityScreen';
+import InterfaceSettingsScreen from '../web/InterfaceSettingsScreen';
+import { TasksScreen } from '../web/TasksScreen';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { notesApi } from '../../api/note';
 import { useToast } from '../../hooks/useToast';
 
@@ -21,6 +22,7 @@ export const SettingsScreen: React.FC = () => {
   const [showLLMConfig, setShowLLMConfig] = useState(false);
   const [showPrivacySecurity, setShowPrivacySecurity] = useState(false);
   const [showInterfaceSettings, setShowInterfaceSettings] = useState(false);
+  const [showTasks, setShowTasks] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -106,6 +108,15 @@ export const SettingsScreen: React.FC = () => {
           <Text style={[styles.menuText, { color: colors.text }]}>大模型配置</Text>
         </TouchableOpacity>
 
+        {Platform.OS !== 'web' && (
+          <TouchableOpacity
+            style={[styles.menuItem, { backgroundColor: colors.backgroundSecondary }]}
+            onPress={() => setShowTasks(true)}
+          >
+            <Text style={[styles.menuText, { color: colors.text }]}>后台任务</Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity
           style={[styles.menuItem, { backgroundColor: colors.backgroundSecondary }]}
           onPress={handleExportNotes}
@@ -169,6 +180,22 @@ export const SettingsScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
+
+      {/* 后台任务（仅手机端） */}
+      {Platform.OS !== 'web' && (
+        <Modal
+          visible={showTasks}
+          animationType="slide"
+          transparent
+          onRequestClose={() => setShowTasks(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <TasksScreen onClose={() => setShowTasks(false)} />
+            </View>
+          </View>
+        </Modal>
+      )}
       <ConfirmDialog
         visible={showLogoutConfirm}
         title="确认退出"

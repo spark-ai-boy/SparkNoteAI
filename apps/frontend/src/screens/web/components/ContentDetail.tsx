@@ -11,18 +11,18 @@ import {
   Linking,
   Platform,
 } from 'react-native';
-import { FileTextIcon, FileIcon, LinkIcon, CalendarIcon, EditIcon, TrashIcon, SaveIcon, PinIcon, TagIcon } from '../icons';
-import { spacing } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
-import { useServerConfigStore } from '../../stores/serverConfigStore';
-import { Fragment } from '../../mock';
-import { Note, Tag } from '../../api/note';
+import { FileTextIcon, FileIcon, LinkIcon, CalendarIcon, EditIcon, TrashIcon, SaveIcon, PinIcon, TagIcon } from '../../../components/icons';
+import { spacing } from '../../../theme';
+import { useWebTheme } from '../../../hooks/useWebTheme';
+import { useServerConfigStore } from '../../../stores/serverConfigStore';
+import { Fragment } from '../../../mock';
+import { Note, Tag } from '../../../api/note';
 
 // Web 端导入 MdPreview
 import { MdPreview } from 'md-editor-rt';
 import 'md-editor-rt/lib/style.css';
 
-import { transformImageUrl, transformMarkdownImages } from '../../utils/imageUrlTransform';
+import { transformImageUrl, transformMarkdownImages } from '../../../utils/imageUrlTransform';
 
 // 联合类型，支持 Fragment 和 Note
 type ContentItem = Fragment | Note;

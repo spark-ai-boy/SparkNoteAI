@@ -14,6 +14,7 @@ import {
   MonitorIcon,
   PlayCircleIcon,
   GlobeIcon,
+  DownloadIcon,
 } from '../../components/icons';
 
 // 平台图标组件映射

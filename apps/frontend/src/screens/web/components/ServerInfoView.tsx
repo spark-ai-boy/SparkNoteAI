@@ -14,12 +14,12 @@ import {
   InfoIcon,
   LogOutIcon,
   CloseIcon,
-} from '../icons';
-import { spacing, fontFamily } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
-import { useServerConfigStore } from '../../stores/serverConfigStore';
-import { useAuthStore } from '../../stores/authStore';
-import apiClient from '../../api/client';
+} from '../../../components/icons';
+import { spacing, fontFamily } from '../../../theme';
+import { useWebTheme } from '../../../hooks/useWebTheme';
+import { useServerConfigStore } from '../../../stores/serverConfigStore';
+import { useAuthStore } from '../../../stores/authStore';
+import apiClient from '../../../api/client';
 
 export const ServerInfoView: React.FC = () => {
   const colors = useWebTheme();

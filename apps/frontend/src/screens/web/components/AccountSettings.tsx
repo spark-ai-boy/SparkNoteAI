@@ -10,10 +10,10 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { EditIcon, SaveIcon, CloseIcon, EyeIcon, EyeOffIcon, ShieldIcon } from '../icons';
-import { spacing } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
-import { useAuthStore } from '../../stores/authStore';
+import { EditIcon, SaveIcon, CloseIcon, EyeIcon, EyeOffIcon, ShieldIcon } from '../../../components/icons';
+import { spacing } from '../../../theme';
+import { useWebTheme } from '../../../hooks/useWebTheme';
+import { useAuthStore } from '../../../stores/authStore';
 
 interface Toast {
   type: 'success' | 'error';

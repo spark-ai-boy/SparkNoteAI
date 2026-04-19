@@ -1,4 +1,5 @@
 // 页面入口文件
 
 export * from './auth';
-export * from './main';
+export * from './web';
+export * from './mobile';

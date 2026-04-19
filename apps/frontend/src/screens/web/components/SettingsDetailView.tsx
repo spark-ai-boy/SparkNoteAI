@@ -6,17 +6,17 @@ import {
   Text,
   StyleSheet,
 } from 'react-native';
-import { ConstructionIcon, UserIcon, LockIcon, InfoIcon } from '../icons';
-import { spacing } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
+import { ConstructionIcon, UserIcon, LockIcon, InfoIcon } from '../../../components/icons';
+import { spacing } from '../../../theme';
+import { useWebTheme } from '../../../hooks/useWebTheme';
 import AccountSettings from './AccountSettings';
 import FeatureConfigDetail from './FeatureConfigDetail';
 import LLMConfigManager from './LLMConfigManager';
 import ImageStorageConfigManager from './ImageStorageConfigManager';
 import ServerInfoView from './ServerInfoView';
 import PrivacySecuritySettings from './PrivacySecuritySettings';
-import InterfaceSettingsScreen from '../../screens/main/InterfaceSettingsScreen';
-import NotificationSettingsScreen from '../../screens/main/NotificationSettingsScreen';
+import InterfaceSettingsScreen from '../InterfaceSettingsScreen';
+import NotificationSettingsScreen from '../NotificationSettingsScreen';
 import DataManagement from './DataManagement';
 
 // 设置分类详情组件属性

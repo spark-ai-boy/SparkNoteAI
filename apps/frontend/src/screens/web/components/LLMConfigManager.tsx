@@ -13,12 +13,12 @@ import {
   Platform,
   Image,
 } from 'react-native';
-import { colors, spacing } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
-import { useLLMConfigStore } from '../../stores/llmConfigStore';
-import { useFeatureConfigStore } from '../../stores/featureConfigStore';
-import { LLMIntegration, LLMIntegrationType } from '../../api/llmConfig';
-import { PlusIcon, TrashIcon, SparklesIcon, EditIcon, CheckIcon, CloseIcon } from '../icons';
+import { colors, spacing } from '../../../theme';
+import { useWebTheme } from '../../../hooks/useWebTheme';
+import { useLLMConfigStore } from '../../../stores/llmConfigStore';
+import { useFeatureConfigStore } from '../../../stores/featureConfigStore';
+import { LLMIntegration, LLMIntegrationType } from '../../../api/llmConfig';
+import { PlusIcon, TrashIcon, SparklesIcon, EditIcon, CheckIcon, CloseIcon } from '../../../components/icons';
 
 interface LLMConfigManagerProps {
   onClose?: () => void;

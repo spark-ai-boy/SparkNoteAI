@@ -29,6 +29,7 @@ import {
   TrashIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  CloseIcon,
 } from '../../components/icons';
 
 // 获取动态颜色的 Hook
@@ -90,7 +91,11 @@ const COLUMN_COUNT = 2;
 const CARD_MARGIN = spacing.md;
 const CARD_WIDTH = (SCREEN_WIDTH - (COLUMN_COUNT + 1) * CARD_MARGIN) / COLUMN_COUNT;
 
-export const TasksScreen: React.FC = () => {
+interface TasksScreenProps {
+  onClose?: () => void;
+}
+
+export const TasksScreen: React.FC<TasksScreenProps> = ({ onClose }) => {
   const colors = useWebTheme();
   const statusConfig = useStatusConfig();
   const [refreshing, setRefreshing] = useState(false);
@@ -362,6 +367,11 @@ export const TasksScreen: React.FC = () => {
                 : `${pagination.page}/${pagination.pages || 1} 页 · ${pagination.total} 个任务`}
             </Text>
           </View>
+          {onClose && (
+            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <CloseIcon size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={[styles.refreshButton, { backgroundColor: colors.secondary }]}
             onPress={handleRefresh}
@@ -473,6 +483,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  closeButton: {
+    padding: spacing.sm,
   },
   title: {
     ...typography.h2,

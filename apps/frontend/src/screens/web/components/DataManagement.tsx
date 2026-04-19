@@ -8,11 +8,11 @@ import {
   TouchableOpacity,
   Platform,
 } from 'react-native';
-import { spacing } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
-import { DatabaseIcon, DownloadIcon } from '../icons';
-import { notesApi } from '../../api/note';
-import { useToast } from '../../hooks/useToast';
+import { spacing } from '../../../theme';
+import { useWebTheme } from '../../../hooks/useWebTheme';
+import { DatabaseIcon, DownloadIcon } from '../../../components/icons';
+import { notesApi } from '../../../api/note';
+import { useToast } from '../../../hooks/useToast';
 
 export const DataManagement: React.FC = () => {
   const colors = useWebTheme();

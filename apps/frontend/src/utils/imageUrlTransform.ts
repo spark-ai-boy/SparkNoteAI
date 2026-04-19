@@ -2,12 +2,15 @@
 import { API_CONFIG } from '@sparknoteai/shared';
 import { useServerConfigStore } from '../stores/serverConfigStore';
 
+// React Native 有 window polyfill 但没有 window.location
+const hasLocation = typeof window !== 'undefined' && (window as any).location;
+
 /**
  * 判断是否为开发模式（本地不同端口访问）
  * 与 api/config.ts 中的 isDevWeb 逻辑保持一致
  */
 const isDevWeb = (): boolean => {
-  if (typeof window === 'undefined') return false;
+  if (!hasLocation) return false;
   return (
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
     window.location.port !== '80' && window.location.port !== '443'
@@ -32,7 +35,7 @@ export const transformImageUrl = (src: string, baseUrl?: string): string => {
   }
 
   // Electron 桌面端（file:// 协议）
-  const isElectron = typeof window !== 'undefined' && window.location.protocol === 'file:';
+  const isElectron = hasLocation && window.location.protocol === 'file:';
 
   // 开发模式：补全为后端地址
   if (isDevWeb()) {
@@ -73,7 +76,7 @@ export const transformMarkdownImages = (content: string, baseUrl?: string): stri
   if (!content) return content;
 
   // 生产环境不需要替换
-  if (!isDevWeb() && !(typeof window !== 'undefined' && window.location.protocol === 'file:')) {
+  if (!isDevWeb() && !(hasLocation && window.location.protocol === 'file:')) {
     return content;
   }
 

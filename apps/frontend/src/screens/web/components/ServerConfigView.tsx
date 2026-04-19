@@ -17,11 +17,11 @@ import {
   RefreshCwIcon,
   SaveIcon,
   RotateCcwIcon,
-} from '../icons';
+} from '../../../components/icons';
 import { ConfirmDialog } from './ConfirmDialog';
-import { spacing, typography, fontFamily } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
-import { useServerConfigStore } from '../../stores/serverConfigStore';
+import { spacing, typography, fontFamily } from '../../../theme';
+import { useWebTheme } from '../../../hooks/useWebTheme';
+import { useServerConfigStore } from '../../../stores/serverConfigStore';
 
 export const ServerConfigView: React.FC = () => {
   const colors = useWebTheme();

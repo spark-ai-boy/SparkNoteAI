@@ -1,17 +1,20 @@
 // 主页面 - 笔记列表
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { spacing, typography } from '../../theme';
 import { useWebTheme } from '../../hooks/useWebTheme';
+import { PlusIcon } from '../../components/icons';
+import { ImportDialog } from '../../components';
 
 // 模拟数据
 const MOCK_NOTES = [
@@ -22,6 +25,7 @@ const MOCK_NOTES = [
 
 export const NotesScreen: React.FC = () => {
   const colors = useWebTheme();
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   const isDark = colors.background === '#0a0a0a' || colors.background === '#171717';
 
@@ -54,6 +58,14 @@ export const NotesScreen: React.FC = () => {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Text style={[styles.title, { color: colors.text }]}>笔记</Text>
+        {Platform.OS !== 'web' && (
+          <TouchableOpacity
+            style={styles.importButton}
+            onPress={() => setShowImportDialog(true)}
+          >
+            <PlusIcon size={20} color={colors.primary} />
+          </TouchableOpacity>
+        )}
       </View>
       <FlatList
         data={MOCK_NOTES}
@@ -61,6 +73,14 @@ export const NotesScreen: React.FC = () => {
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
       />
+
+      {/* 导入对话框（仅手机端） */}
+      {Platform.OS !== 'web' && (
+        <ImportDialog
+          visible={showImportDialog}
+          onClose={() => setShowImportDialog(false)}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -71,10 +91,17 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: spacing.lg,
+    paddingBottom: spacing.md,
     borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   title: {
     ...typography.h2,
+  },
+  importButton: {
+    padding: spacing.xs,
   },
   listContent: {
     padding: spacing.md,

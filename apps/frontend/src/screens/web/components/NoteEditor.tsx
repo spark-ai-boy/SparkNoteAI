@@ -9,14 +9,14 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
-import { spacing } from '../theme';
-import { useWebTheme } from '../hooks/useWebTheme';
-import { Note } from '../../api/note';
-import { useNoteStore } from '../stores/noteStore';
-import { Tag } from '../../api/note';
-import { useServerConfigStore } from '../stores/serverConfigStore';
-import { uploadImage } from '../api/imageStorage';
-import { transformImageUrl, transformMarkdownImages } from '../utils/imageUrlTransform';
+import { spacing } from '../../../theme';
+import { useWebTheme } from '../../../hooks/useWebTheme';
+import { Note } from '../../../api/note';
+import { useNoteStore } from '../../../stores/noteStore';
+import { Tag } from '../../../api/note';
+import { useServerConfigStore } from '../../../stores/serverConfigStore';
+import { uploadImage } from '../../../api/imageStorage';
+import { transformImageUrl, transformMarkdownImages } from '../../../utils/imageUrlTransform';
 
 // Web 端导入 markdown 编辑器
 import { MdEditor, MdPreview } from 'md-editor-rt';

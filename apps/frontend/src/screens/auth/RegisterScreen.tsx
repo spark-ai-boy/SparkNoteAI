@@ -28,6 +28,11 @@ interface Props {
   navigation: RegisterScreenNavigationProp;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const isElectron = typeof (globalThis as any).electronAPI !== 'undefined';
+const isWeb = Platform.OS === 'web' && !isElectron;
+const isMobile = !isWeb;
+
 export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const colors = useWebTheme();
   const [username, setUsername] = useState('');
@@ -109,47 +114,49 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         >
           {/* 左右布局容器 */}
           <View style={styles.layoutContainer}>
-            {/* 左侧装饰区域 */}
-            <View style={[styles.leftPanel, { backgroundColor: colors.primary }]}>
-              <View style={styles.leftPanelContent}>
-                {/* 主标题 */}
-                <View style={styles.leftHeader}>
-                  <View style={styles.logoIconWrapper}>
-                    <Text style={styles.logoIcon}>✨</Text>
+            {/* 左侧装饰区域（仅 Web/Electron 显示） */}
+            {!isMobile && (
+              <View style={[styles.leftPanel, { backgroundColor: colors.primary }]}>
+                <View style={styles.leftPanelContent}>
+                  {/* 主标题 */}
+                  <View style={styles.leftHeader}>
+                    <View style={styles.logoIconWrapper}>
+                      <Text style={styles.logoIcon}>✨</Text>
+                    </View>
+                    <Text style={[styles.leftTitle, { color: colors.white }]}>SparkNoteAI</Text>
+                    <Text style={[styles.leftSubtitle, { color: colors.white + 'CC' }]}>知语拾光</Text>
                   </View>
-                  <Text style={[styles.leftTitle, { color: colors.white }]}>SparkNoteAI</Text>
-                  <Text style={[styles.leftSubtitle, { color: colors.white + 'CC' }]}>知语拾光</Text>
-                </View>
 
-                {/* 装饰性线条图案 */}
-                <View style={styles.patternContainer}>
-                  {/* 波浪线条 */}
-                  <View style={[styles.waveLine, styles.waveLine1]} />
-                  <View style={[styles.waveLine, styles.waveLine2]} />
-                  <View style={[styles.waveLine, styles.waveLine3]} />
+                  {/* 装饰性线条图案 */}
+                  <View style={styles.patternContainer}>
+                    {/* 波浪线条 */}
+                    <View style={[styles.waveLine, styles.waveLine1]} />
+                    <View style={[styles.waveLine, styles.waveLine2]} />
+                    <View style={[styles.waveLine, styles.waveLine3]} />
 
-                  {/* 装饰圆点 */}
-                  <View style={[styles.dot, styles.dot1]} />
-                  <View style={[styles.dot, styles.dot2]} />
-                  <View style={[styles.dot, styles.dot3]} />
-                  <View style={[styles.dot, styles.dot4]} />
+                    {/* 装饰圆点 */}
+                    <View style={[styles.dot, styles.dot1]} />
+                    <View style={[styles.dot, styles.dot2]} />
+                    <View style={[styles.dot, styles.dot3]} />
+                    <View style={[styles.dot, styles.dot4]} />
 
-                  {/* 装饰性几何图形 */}
-                  <View style={[styles.shape, styles.circle1]} />
-                  <View style={[styles.shape, styles.circle2]} />
-                  <View style={styles.hexagon} />
-                </View>
+                    {/* 装饰性几何图形 */}
+                    <View style={[styles.shape, styles.circle1]} />
+                    <View style={[styles.shape, styles.circle2]} />
+                    <View style={styles.hexagon} />
+                  </View>
 
-                {/* 底部标语 */}
-                <View style={styles.leftFooter}>
-                  <Text style={[styles.tagline, { color: colors.white + 'CC' }]}>整理知识，连接智慧</Text>
-                  <Text style={[styles.taglineEn, { color: colors.white + '99' }]}>Organize knowledge, connect wisdom</Text>
+                  {/* 底部标语 */}
+                  <View style={styles.leftFooter}>
+                    <Text style={[styles.tagline, { color: colors.white + 'CC' }]}>整理知识，连接智慧</Text>
+                    <Text style={[styles.taglineEn, { color: colors.white + '99' }]}>Organize knowledge, connect wisdom</Text>
+                  </View>
                 </View>
               </View>
-            </View>
+            )}
 
             {/* 右侧注册区域 */}
-            <View style={[styles.rightPanel, { backgroundColor: colors.background }]}>
+            <View style={[styles.rightPanel, isMobile && styles.rightPanelMobile, { backgroundColor: colors.background }]}>
               <View style={styles.formContainer}>
                 <View style={styles.formHeader}>
                   <Text style={[styles.formTitle, { color: colors.text }]}>创建账号</Text>
@@ -402,6 +409,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.xl,
     ...(Platform.OS === 'web' ? ({ minHeight: '100vh' } as any) : {}),
+  },
+  rightPanelMobile: {
+    padding: spacing.lg,
   },
   formContainer: {
     width: '100%',

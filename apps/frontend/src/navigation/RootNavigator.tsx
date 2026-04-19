@@ -9,7 +9,7 @@ import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
 import { RootStackParamList } from './types';
 import { useAuthStore } from '../stores';
-import { ThreeColumnLayout } from '../components/layout';
+import { ThreeColumnLayout } from '../screens/web/WebLayoutScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

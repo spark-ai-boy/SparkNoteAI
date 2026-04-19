@@ -28,7 +28,7 @@ import {
   ClockIcon,
   LogOutIcon,
 } from '../../components/icons';
-import { ConfirmDialog } from '../../components/layout/ConfirmDialog';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 
 interface UserSession {
   id: number;

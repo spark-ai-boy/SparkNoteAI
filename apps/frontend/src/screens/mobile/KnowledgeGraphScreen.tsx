@@ -15,11 +15,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { spacing, typography } from '../../theme';
 import { useWebTheme } from '../../hooks/useWebTheme';
 import { NetworkIcon, SproutIcon, BrainIcon, WorkflowIcon } from '../../components/icons';
-import KnowledgeGraph from '../../components/KnowledgeGraph';
+import KnowledgeGraph from '../web/components/KnowledgeGraph';
 import { useKnowledgeGraphStore } from '../../stores/knowledgeGraphStore';
 import { useImportTaskStore } from '../../stores/importTaskStore';
-import type { Node } from '../../components/KnowledgeGraph';
-import { ConfirmDialog } from '../../components/layout/ConfirmDialog';
+import type { Node } from '../web/components/KnowledgeGraph';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 
 export const KnowledgeGraphScreen: React.FC = () => {
   const colors = useWebTheme();

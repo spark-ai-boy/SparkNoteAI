@@ -10,14 +10,14 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
-import { spacing } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
-import { LogoIcon } from '../../components/icons';
+import { spacing } from '../../../theme';
+import { useWebTheme } from '../../../hooks/useWebTheme';
+import { LogoIcon } from '../../../components/icons';
 import {
   aiAssistantApi,
   type ChatMessage,
   type AIAssistantConfig,
-} from '../../api/aiAssistant';
+} from '../../../api/aiAssistant';
 
 interface Message {
   id: string;

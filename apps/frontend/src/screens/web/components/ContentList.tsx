@@ -11,11 +11,11 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
-import { spacing } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
-import { Fragment } from '../../mock';
-import { Tag } from '../../api/note';
-import { SearchIcon } from '../../components/icons';
+import { spacing } from '../../../theme';
+import { useWebTheme } from '../../../hooks/useWebTheme';
+import { Fragment } from '../../../mock';
+import { Tag } from '../../../api/note';
+import { SearchIcon } from '../../../components/icons';
 import {
   MessageSquareIcon,
   FileTextIcon,
@@ -24,7 +24,7 @@ import {
   BookIcon,
   GlobeIcon,
   FileIcon,
-} from '../../components/icons';
+} from '../../../components/icons';
 
 interface ContentListProps {
   title: string;

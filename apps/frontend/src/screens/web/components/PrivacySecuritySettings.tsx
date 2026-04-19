@@ -13,12 +13,12 @@ import {
   Modal,
 } from 'react-native';
 import { QRCodeSVG } from 'qrcode.react';
-import { SmartphoneIcon, ShieldIcon, CheckIcon, CloseIcon, DeviceIcon, LogOutIcon, ClockIcon } from '../icons';
-import { spacing } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
-import { useAuthStore } from '../../stores/authStore';
-import * as authApi from '../../api/auth';
-import * as sessionApi from '../../api/auth';
+import { SmartphoneIcon, ShieldIcon, CheckIcon, CloseIcon, DeviceIcon, LogOutIcon, ClockIcon } from '../../../components/icons';
+import { spacing } from '../../../theme';
+import { useWebTheme } from '../../../hooks/useWebTheme';
+import { useAuthStore } from '../../../stores/authStore';
+import * as authApi from '../../../api/auth';
+import * as sessionApi from '../../../api/auth';
 
 interface Session {
   id: string;

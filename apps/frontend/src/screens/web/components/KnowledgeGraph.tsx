@@ -3,9 +3,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator, Text, Platform, TouchableOpacity } from 'react-native';
-import { spacing } from '../theme';
-import { useWebTheme } from '../hooks/useWebTheme';
-import { knowledgeGraphApi, type GraphNode as ApiGraphNode, type GraphEdge as ApiGraphEdge } from '../api/knowledgeGraph';
+import { spacing } from '../../../theme';
+import { useWebTheme } from '../../../hooks/useWebTheme';
+import { knowledgeGraphApi, type GraphNode as ApiGraphNode, type GraphEdge as ApiGraphEdge } from '../../../api/knowledgeGraph';
 
 // 平台 Web 端专用
 import ForceGraph2D from 'react-force-graph-2d';

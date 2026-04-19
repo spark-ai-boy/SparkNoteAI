@@ -43,11 +43,10 @@ export interface User {
 // 登录
 export const login = async (data: LoginRequest): Promise<AuthResponse> => {
   // FastAPI OAuth2 需要使用 form-data 格式
-  const formData = new URLSearchParams();
-  formData.append('username', data.username);
-  formData.append('password', data.password);
+  // 手动编码避免 RN 中 URLSearchParams 序列化问题
+  const body = `username=${encodeURIComponent(data.username)}&password=${encodeURIComponent(data.password)}`;
 
-  const response = await client.post<AuthResponse>('/auth/login', formData, {
+  const response = await client.post<AuthResponse>('/auth/login', body, {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
@@ -66,11 +65,10 @@ export const login = async (data: LoginRequest): Promise<AuthResponse> => {
 
 // 2FA 登录验证（用于已启用 2FA 的用户）
 export const loginWith2FA = async (username: string, code: string, tempToken: string): Promise<AuthResponse> => {
-  const formData = new URLSearchParams();
-  formData.append('username', username);
-  formData.append('code', code);
+  // 手动编码避免 RN 中 URLSearchParams 序列化问题
+  const body = `username=${encodeURIComponent(username)}&code=${encodeURIComponent(code)}`;
 
-  const response = await client.post<AuthResponse>('/auth/login/2fa', formData, {
+  const response = await client.post<AuthResponse>('/auth/login/2fa', body, {
     headers: {
       'Authorization': `Bearer ${tempToken}`,
       'Content-Type': 'application/x-www-form-urlencoded',

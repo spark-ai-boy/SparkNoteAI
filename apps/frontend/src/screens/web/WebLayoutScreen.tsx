@@ -6,16 +6,16 @@ import { useNavigation } from '@react-navigation/native';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import Sidebar from './Sidebar';
-import ContentList from './ContentList';
-import ContentDetail from './ContentDetail';
-import AIAssistant from './AIAssistant';
-import KnowledgeGraph, { type Node } from '../KnowledgeGraph';
-import NoteEditor from '../NoteEditor';
-import SettingsView from './SettingsView';
-import SettingsDetailView from './SettingsDetailView';
-import { ConfirmDialog } from './ConfirmDialog';
-import { HammerIcon, BotIcon, SproutIcon, BrainIcon, WorkflowIcon, NetworkIcon, DownloadIcon, LinkIcon, FileIcon, FileTextIcon, MessageSquareIcon, MonitorIcon, PlayCircleIcon, InfoIcon, PlugIcon, SmartphoneIcon, BookIcon, GlobeIcon, LightbulbIcon, LayersIcon, UsersIcon, TagIcon } from '../icons';
+import Sidebar from './components/Sidebar';
+import ContentList from './components/ContentList';
+import ContentDetail from './components/ContentDetail';
+import AIAssistant from './components/AIAssistant';
+import KnowledgeGraph, { type Node } from './components/KnowledgeGraph';
+import NoteEditor from './components/NoteEditor';
+import SettingsView from './components/SettingsView';
+import SettingsDetailView from './components/SettingsDetailView';
+import { ConfirmDialog } from './components/ConfirmDialog';
+import { HammerIcon, BotIcon, SproutIcon, BrainIcon, WorkflowIcon, NetworkIcon, DownloadIcon, LinkIcon, FileIcon, FileTextIcon, MessageSquareIcon, MonitorIcon, PlayCircleIcon, InfoIcon, PlugIcon, SmartphoneIcon, BookIcon, GlobeIcon, LightbulbIcon, LayersIcon, UsersIcon, TagIcon } from '../../components/icons';
 import { spacing, typography } from '../../theme';
 import { useWebTheme } from '../../hooks/useWebTheme';
 import { useServerConfigStore } from '../../stores/serverConfigStore';
@@ -234,11 +234,15 @@ export const ThreeColumnLayout: React.FC = () => {
   const executeLogout = async () => {
     try {
       // 清除本地存储的 token
-      localStorage.removeItem('auth_token');
+      if (Platform.OS === 'web') {
+        localStorage.removeItem('auth_token');
+      }
       // 调用 logout 清除状态
       await logout();
       // 刷新页面，会重新路由到登录页
-      window.location.reload();
+      if (Platform.OS === 'web') {
+        window.location.reload();
+      }
     } catch (error) {
       console.error('退出登录失败:', error);
     }
@@ -303,7 +307,9 @@ export const ThreeColumnLayout: React.FC = () => {
       settings: '设置',
     };
     const title = titles[activeTab] || 'SparkNoteAI';
-    document.title = `${title} - SparkNoteAI`;
+    if (Platform.OS === 'web') {
+      document.title = `${title} - SparkNoteAI`;
+    }
   }, [activeTab]);
 
   // 加载标签（启动时获取一次）
@@ -964,7 +970,7 @@ export const ThreeColumnLayout: React.FC = () => {
                           onClick={(e) => {
                             e.preventDefault();
                             const href = props.href;
-                            if (href) window.open(href, '_blank');
+                            if (href && Platform.OS === 'web') window.open(href, '_blank');
                           }}
                         />
                       ),

@@ -11,9 +11,9 @@ import {
   Linking,
   Image,
 } from 'react-native';
-import { spacing } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
-import { useInterfaceSettingsStore } from '../../stores/interfaceSettingsStore';
+import { spacing } from '../../../theme';
+import { useWebTheme } from '../../../hooks/useWebTheme';
+import { useInterfaceSettingsStore } from '../../../stores/interfaceSettingsStore';
 import {
   SparklesIcon,
   BookIcon,
@@ -31,8 +31,8 @@ import {
   MoonIcon,
   GlobeIcon,
   FileTextIcon,
-} from '../../components/icons';
-import { Tag } from '../../api/note';
+} from '../../../components/icons';
+import { Tag } from '../../../api/note';
 
 interface NavItem {
   id: string;
@@ -224,7 +224,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onTagC
             onPress={() => Linking.openURL('https://github.com/spark-ai-boy/SparkNoteAI')}
           >
             <Image
-              source={effectiveTheme === 'dark' ? require('../../../assets/images/github-dark.png') : require('../../../assets/images/github-light.png')}
+              source={effectiveTheme === 'dark' ? require('../../../../assets/images/github-dark.png') : require('../../../../assets/images/github-light.png')}
               style={styles.githubIcon}
               resizeMode="contain"
             />

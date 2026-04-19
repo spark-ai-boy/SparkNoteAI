@@ -1,6 +1,6 @@
 // LLM 配置 API 客户端 - 适配统一配置系统
 
-import client from './client';
+import client, { getAuthToken } from './client';
 
 // 聊天消息类型
 export interface ChatMessage {
@@ -187,8 +187,7 @@ export const chatStream = async (
 ): Promise<AbortController> => {
   const controller = new AbortController();
 
-  // 从 localStorage 获取 token（Web 端）
-  const token = localStorage.getItem('auth_token');
+  const token = await getAuthToken();
 
   const response = await fetch(`${client.defaults.baseURL}/features/ai_assistant/chat`, {
     method: 'POST',

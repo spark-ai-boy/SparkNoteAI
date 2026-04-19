@@ -11,12 +11,12 @@ import {
   ActivityIndicator,
   Modal,
 } from 'react-native';
-import { spacing } from '../../theme';
-import { useWebTheme } from '../../hooks/useWebTheme';
-import { useImageStorageStore } from '../../stores/imageStorageStore';
-import { useFeatureConfigStore } from '../../stores/featureConfigStore';
-import { ImageStorageIntegration, ImageStorageProviderSchema, ConfigField } from '../../api/imageStorage';
-import { PlusIcon, TrashIcon, ImageIcon, EditIcon, CheckIcon, CloseIcon, CloudIcon } from '../icons';
+import { spacing } from '../../../theme';
+import { useWebTheme } from '../../../hooks/useWebTheme';
+import { useImageStorageStore } from '../../../stores/imageStorageStore';
+import { useFeatureConfigStore } from '../../../stores/featureConfigStore';
+import { ImageStorageIntegration, ImageStorageProviderSchema, ConfigField } from '../../../api/imageStorage';
+import { PlusIcon, TrashIcon, ImageIcon, EditIcon, CheckIcon, CloseIcon, CloudIcon } from '../../../components/icons';
 import { ConfirmDialog } from './ConfirmDialog';
 
 interface ImageStorageConfigManagerProps {
