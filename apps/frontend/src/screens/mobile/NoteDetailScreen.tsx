@@ -21,8 +21,10 @@ import { spacing } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useToastStore } from '../../stores/toastStore';
 import { useServerConfigStore } from '../../stores/serverConfigStore';
-import { transformMarkdownImages } from '../../utils/imageUrlTransform';
+import { transformMarkdownImages, transformImageUrl } from '../../utils/imageUrlTransform';
 import { notesApi, type Note, type Tag } from '../../api/note';
+import { uploadImageMobile } from '../../api/imageStorage';
+import * as ImagePicker from 'expo-image-picker';
 import {
   ChevronLeftIcon,
   EditIcon,
@@ -40,6 +42,7 @@ import {
   ListIcon,
   ListOrderedIcon,
   LinkIcon,
+  ImageIcon,
 } from '../../components/icons';
 import Markdown from 'react-native-marked';
 
@@ -233,6 +236,55 @@ export const NoteDetailScreen: React.FC = () => {
     }, 50);
   }, [editContent, cursorPosition]);
 
+  // 上传图片
+  const handleImageUpload = useCallback(async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      useToastStore.getState().showError('需要相册权限才能选择图片');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: false,
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets || result.assets.length === 0) return;
+
+    const asset = result.assets[0];
+    // asset.uri 格式: file:///var/.../filename.jpg
+    const uriParts = asset.uri.split('/');
+    const fileName = uriParts[uriParts.length - 1] || `image_${Date.now()}.jpg`;
+
+    try {
+      useToastStore.getState().showInfo('正在上传图片...');
+      const urls = await uploadImageMobile([{
+        uri: asset.uri,
+        name: fileName,
+        type: 'image/jpeg',
+      }]);
+
+      if (urls.length > 0) {
+        const imageUrl = transformImageUrl(urls[0], baseUrl);
+        const markdownImage = `![${fileName}](${imageUrl})\n`;
+        const input = textInputRef.current;
+        const start = cursorPosition.start;
+        const before = editContent.slice(0, start);
+        const after = editContent.slice(start);
+        const newContent = before + markdownImage + after;
+        setEditContent(newContent);
+        useToastStore.getState().showSuccess('图片上传成功');
+        // 延迟聚焦
+        setTimeout(() => {
+          input?.setSelection?.(start + markdownImage.length, start + markdownImage.length);
+        }, 50);
+      }
+    } catch {
+      useToastStore.getState().showError('图片上传失败');
+    }
+  }, [editContent, cursorPosition, baseUrl]);
+
   const toolbarItems = [
     { icon: HeadingIcon, prefix: '## ', placeholder: '标题', key: 'heading' },
     { icon: BoldIcon, prefix: '**', suffix: '**', placeholder: '粗体', key: 'bold' },
@@ -241,6 +293,7 @@ export const NoteDetailScreen: React.FC = () => {
     { icon: ListIcon, prefix: '- ', placeholder: '列表项', key: 'list' },
     { icon: ListOrderedIcon, prefix: '1. ', placeholder: '列表项', key: 'olist' },
     { icon: LinkIcon, prefix: '[', suffix: '](url)', placeholder: '链接文字', key: 'link' },
+    { icon: ImageIcon, prefix: '', suffix: '', placeholder: '', key: 'image', action: 'upload' as const },
   ];
 
   // Markdown 样式
@@ -389,10 +442,10 @@ export const NoteDetailScreen: React.FC = () => {
                   <TouchableOpacity
                     key={item.key}
                     style={styles.toolbarBtn}
-                    onPress={() => insertMarkdown(item.prefix, item.suffix, item.placeholder)}
+                    onPress={item.action === 'upload' ? handleImageUpload : () => insertMarkdown(item.prefix, item.suffix, item.placeholder)}
                     activeOpacity={0.6}
                   >
-                    <Icon size={20} color={colors.textSecondary} />
+                    <Icon size={20} color={item.action === 'upload' ? colors.blue : colors.textSecondary} />
                   </TouchableOpacity>
                 );
               })}

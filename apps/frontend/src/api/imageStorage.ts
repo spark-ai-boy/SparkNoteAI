@@ -2,6 +2,7 @@
 
 import client from './client';
 import type { ConfigField } from './featureConfig';
+import { Platform } from 'react-native';
 
 // 重新导出 ConfigField 供其他模块使用
 export type { ConfigField };
@@ -181,11 +182,32 @@ export const getImageStorageProviderSchema = async (providerId: string): Promise
 export const getImageStorageConfig = getImageStorageIntegrations;
 export const saveImageStorageConfig = createImageStorageIntegration;
 
-// 上传一张或多张图片
+// 上传一张或多图片（Web 端，使用 File 对象）
 export const uploadImage = async (files: File[]): Promise<string[]> => {
   const formData = new FormData();
   files.forEach((file) => {
     formData.append('files', file);
+  });
+
+  const response = await client.post('/images/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data.urls;
+};
+
+// 上传图片（移动端，使用本地 URI）
+export interface MobileImageUploadData {
+  uri: string;
+  name: string;
+  type: string;
+}
+
+export const uploadImageMobile = async (images: MobileImageUploadData[]): Promise<string[]> => {
+  const formData = new FormData();
+  images.forEach((image) => {
+    formData.append('files', image as any);
   });
 
   const response = await client.post('/images/upload', formData, {
@@ -208,4 +230,5 @@ export default {
   getImageStorageProviders,
   getImageStorageProviderSchema,
   uploadImage,
+  uploadImageMobile,
 };

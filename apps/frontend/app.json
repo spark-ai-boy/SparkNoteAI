@@ -29,7 +29,13 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "应用需要访问您的相册才能上传笔记中的图片。"
+        }
+      ]
     ]
   }
 }

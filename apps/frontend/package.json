@@ -23,6 +23,7 @@
     "expo": "^55.0.10-canary-20260328-bdc6273",
     "expo-constants": "^55.0.10-canary-20260328-bdc6273",
     "expo-file-system": "^55.0.16",
+    "expo-image-picker": "55.0.15-canary-20260328-bdc6273",
     "expo-linking": "^55.0.10-canary-20260328-bdc6273",
     "expo-secure-store": "^55.0.10-canary-20260328-bdc6273",
     "expo-sharing": "^55.0.18",
