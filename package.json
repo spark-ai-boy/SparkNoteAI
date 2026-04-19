@@ -7,9 +7,7 @@
   "scripts": {
     "dev:backend": "cd apps/backend && .venv/bin/python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000",
     "dev:frontend": "cd apps/frontend && npm start",
-
     "build:frontend": "cd apps/frontend && npx expo export",
-
     "docker:dev:up": "cd docker && docker-compose -f docker-compose.dev.yml up -d",
     "docker:dev:down": "cd docker && docker-compose -f docker-compose.dev.yml down",
     "docker:dev:logs": "cd docker && docker-compose -f docker-compose.dev.yml logs -f",
@@ -20,14 +18,11 @@
     "docker:push": "./scripts/build.sh push",
     "docker:deploy": "./scripts/build.sh deploy",
     "docker:login": "./scripts/build.sh login",
-
     "test:backend": "cd apps/backend && pytest",
     "test:frontend": "cd apps/frontend && npm test",
     "lint": "npm run lint:frontend",
     "lint:frontend": "cd apps/frontend && npx tsc --noEmit",
-
     "install:all": "npm install && cd apps/frontend && npm install && cd ../../packages/shared && npm install && npm run build",
-
     "electron:dev": "concurrently \"cd apps/frontend && npm start\" \"wait-on http://localhost:8081 && sleep 2 && electron .\"",
     "electron:build:mac": "npm run build:frontend && cd apps/frontend && node fix-electron-paths.js && electron-builder --mac",
     "electron:build:win": "npm run build:frontend && cd apps/frontend && node fix-electron-paths.js && electron-builder --win",
@@ -47,5 +42,10 @@
   "workspaces": [
     "apps/frontend",
     "packages/shared"
-  ]
+  ],
+  "dependencies": {
+    "expo": "55.0.10-canary-20260328-bdc6273",
+    "react": "19.2.0",
+    "react-native": "0.83.4"
+  }
 }

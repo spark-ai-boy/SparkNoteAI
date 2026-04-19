@@ -1,86 +1,176 @@
-// 主页面 - 笔记列表
+// 笔记列表（手机端）
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Platform,
+  TextInput,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { spacing, typography } from '../../theme';
 import { useWebTheme } from '../../hooks/useWebTheme';
-import { PlusIcon } from '../../components/icons';
-import { ImportDialog } from '../../components';
-
-// 模拟数据
-const MOCK_NOTES = [
-  { id: 1, title: 'React Native 学习笔记', content: '...', tags: ['React', 'Mobile'] },
-  { id: 2, title: 'TypeScript 类型系统', content: '...', tags: ['TypeScript'] },
-  { id: 3, title: '知识图谱构建方法', content: '...', tags: ['AI', 'Knowledge'] },
-];
+import { PlusIcon, SearchIcon, CloseIcon, BookIcon } from '../../components/icons';
+import { NoteCard } from './components/NoteCard';
+import { EmptyState } from './components/EmptyState';
+import { ImportDialog } from '../../components/ImportDialog';
+import { NoteDetailScreen } from './NoteDetailScreen';
+import { notesApi, type Note } from '../../api/note';
+import { createImportTask } from '../../api/importTask';
+import { useToast } from '../../hooks/useToast';
 
 export const NotesScreen: React.FC = () => {
   const colors = useWebTheme();
+  const toast = useToast();
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [viewingNote, setViewingNote] = useState<number | null>(null);
 
-  const isDark = colors.background === '#0a0a0a' || colors.background === '#171717';
+  const fetchNotes = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await notesApi.getNotes({ page: 1, size: 50 });
+      setNotes(res.items);
+    } catch (e: any) {
+      toast.error('获取笔记失败');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [toast]);
 
-  const renderNoteItem = ({ item }: { item: typeof MOCK_NOTES[0] }) => (
-    <TouchableOpacity
-      style={[
-        styles.noteCard,
-        {
-          backgroundColor: isDark ? colors.secondary : '#ffffff',
-          borderWidth: isDark ? 1 : 0,
-          borderColor: isDark ? colors.border : 'transparent',
-          ...(!isDark && {
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)',
-          } as any),
-        },
-      ]}
-    >
-      <Text style={[styles.noteTitle, { color: colors.text }]}>{item.title}</Text>
-      <View style={styles.tagsContainer}>
-        {item.tags.map((tag) => (
-          <View key={tag} style={[styles.tag, { backgroundColor: colors.primary }]}>
-            <Text style={[styles.tagText, { color: colors.cta }]}>{tag}</Text>
-          </View>
-        ))}
-      </View>
-    </TouchableOpacity>
+  useEffect(() => {
+    fetchNotes();
+  }, [fetchNotes]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchNotes();
+  }, [fetchNotes]);
+
+  const handleCreateNote = async () => {
+    try {
+      const note = await notesApi.createNote({ title: '无标题笔记' });
+      setNotes((prev) => [note, ...prev]);
+      toast.success('已创建新笔记');
+    } catch (e: any) {
+      toast.error('创建笔记失败');
+    }
+  };
+
+  const handleImport = async (url: string, platform: string) => {
+    try {
+      await createImportTask({ url, platform });
+      toast.success('导入任务已创建');
+      setShowImportDialog(false);
+    } catch (e: any) {
+      toast.error('创建导入任务失败');
+    }
+  };
+
+  const filteredNotes = searchQuery
+    ? notes.filter(
+        (n) =>
+          n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          n.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    : notes;
+
+  const renderNoteItem = ({ item }: { item: Note }) => (
+    <NoteCard
+      title={item.title}
+      summary={item.summary || item.content?.slice(0, 100)}
+      tags={item.tags}
+      onPress={() => setViewingNote(item.id)}
+    />
   );
+
+  const handleRefreshList = useCallback(() => {
+    setRefreshing(true);
+    fetchNotes();
+  }, [fetchNotes]);
+
+  if (viewingNote !== null) {
+    return (
+      <NoteDetailScreen
+        noteId={viewingNote}
+        onBack={() => setViewingNote(null)}
+        onUpdate={handleRefreshList}
+      />
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Text style={[styles.title, { color: colors.text }]}>笔记</Text>
-        {Platform.OS !== 'web' && (
-          <TouchableOpacity
-            style={styles.importButton}
-            onPress={() => setShowImportDialog(true)}
-          >
-            <PlusIcon size={20} color={colors.primary} />
-          </TouchableOpacity>
+        {showSearch ? (
+          <View style={styles.searchHeader}>
+            <TextInput
+              style={[styles.searchInput, { backgroundColor: colors.backgroundSecondary, color: colors.text }]}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="搜索笔记..."
+              placeholderTextColor={colors.textTertiary}
+              autoFocus
+            />
+            <TouchableOpacity onPress={() => { setShowSearch(false); setSearchQuery(''); }}>
+              <CloseIcon size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <Text style={[styles.title, { color: colors.text }]}>笔记</Text>
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={styles.actionBtn} onPress={() => setShowSearch(true)}>
+                <SearchIcon size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionBtn} onPress={handleCreateNote}>
+                <PlusIcon size={20} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+          </>
         )}
       </View>
+
+      {/* Note List */}
       <FlatList
-        data={MOCK_NOTES}
+        data={filteredNotes}
         renderItem={renderNoteItem}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
+        ListEmptyComponent={
+          !loading && filteredNotes.length === 0 ? (
+            <EmptyState
+              icon={searchQuery ? <SearchIcon size={48} color={colors.textTertiary} /> : <BookIcon size={48} color={colors.textTertiary} />}
+              title={searchQuery ? '未找到相关笔记' : '暂无笔记'}
+              description={searchQuery ? '尝试其他关键词' : '点击右上角 + 创建第一篇笔记'}
+            />
+          ) : null
+        }
       />
 
-      {/* 导入对话框（仅手机端） */}
-      {Platform.OS !== 'web' && (
-        <ImportDialog
-          visible={showImportDialog}
-          onClose={() => setShowImportDialog(false)}
-        />
-      )}
+      {/* Import Dialog */}
+      <ImportDialog
+        visible={showImportDialog}
+        onClose={() => setShowImportDialog(false)}
+        onImport={handleImport}
+      />
     </SafeAreaView>
   );
 };
@@ -90,43 +180,41 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    padding: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    minHeight: 56,
   },
   title: {
-    ...typography.h2,
+    fontSize: 24,
+    fontWeight: '700',
   },
-  importButton: {
+  headerActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  actionBtn: {
     padding: spacing.xs,
+  },
+  searchHeader: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    borderRadius: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: 15,
   },
   listContent: {
     padding: spacing.md,
-  },
-  noteCard: {
-    borderRadius: 12,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  noteTitle: {
-    ...typography.h4,
-    marginBottom: spacing.sm,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-  tag: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 4,
-  },
-  tagText: {
-    fontSize: 12,
+    paddingBottom: spacing.xl,
   },
 });
 

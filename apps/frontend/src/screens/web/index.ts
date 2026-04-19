@@ -4,4 +4,4 @@ export { default as WebLayoutScreen } from './WebLayoutScreen';
 export { FragmentsScreen } from './FragmentsScreen';
 export { MindmapScreen } from './MindmapScreen';
 export { TasksScreen } from './TasksScreen';
-export { KnowledgeGraphScreen } from './KnowledgeGraphScreen';
+// KnowledgeGraphScreen exported directly where used (web layout) to avoid mobile barrel conflict
