@@ -20,7 +20,6 @@ import { PlusIcon, CloseIcon, BookIcon, MoreHorizontalIcon, BotIcon, NetworkIcon
 import { NoteCard } from './components/NoteCard';
 import { EmptyState } from './components/EmptyState';
 import { ImportDialog } from '../../components/ImportDialog';
-import { NoteDetailScreen } from './NoteDetailScreen';
 import { notesApi, type Note, type Tag } from '../../api/note';
 import { createImportTask } from '../../api/importTask';
 import { useToast } from '../../hooks/useToast';
@@ -92,7 +91,6 @@ export const NotesScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [viewingNote, setViewingNote] = useState<number | null>(null);
   const [tags, setTags] = useState<Tag[]>([]);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const menuButtonRef = useRef<any>(null);
@@ -162,6 +160,14 @@ export const NotesScreen: React.FC = () => {
     fetchTags();
   }, []);
 
+  // 从笔记详情页返回时刷新
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchNotes();
+    });
+    return unsubscribe;
+  }, [navigation, fetchNotes]);
+
   const fetchTags = async () => {
     try {
       const res = await notesApi.getTags();
@@ -213,21 +219,6 @@ export const NotesScreen: React.FC = () => {
   });
 
   const groupedNotes = groupByDate(filteredNotes);
-
-  const handleRefreshList = useCallback(() => {
-    setRefreshing(true);
-    fetchNotes();
-  }, [fetchNotes]);
-
-  if (viewingNote !== null) {
-    return (
-      <NoteDetailScreen
-        noteId={viewingNote}
-        onBack={() => setViewingNote(null)}
-        onUpdate={handleRefreshList}
-      />
-    );
-  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -302,7 +293,9 @@ export const NotesScreen: React.FC = () => {
               summary={item.summary || item.content?.slice(0, 100)}
               tags={item.tags}
               tagColors={tagColorMap}
-              onPress={() => setViewingNote(item.id)}
+              platform={item.platform}
+              createdAt={item.created_at}
+              onPress={() => navigation.navigate('NoteDetail', { noteId: item.id })}
             />
           );
         }}
@@ -396,10 +389,10 @@ const styles = StyleSheet.create({
   listContent: { padding: spacing.md, paddingBottom: spacing.xl, paddingTop: 0 },
   sectionHeader: { fontSize: 13, fontWeight: '600', paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.xs },
   menuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.2)' },
-  menuContainer: { borderRadius: 12, borderWidth: 0.5, overflow: 'hidden', position: 'absolute', width: 200, paddingVertical: 6 },
+  menuContainer: { borderRadius: 12, borderWidth: 0.5, overflow: 'hidden', position: 'absolute', width: 150, paddingVertical: 6 },
   menuItem: { flexDirection: 'row', alignItems: 'center', height: 40, paddingHorizontal: spacing.md },
   menuIconWrap: { width: 24, height: 24, justifyContent: 'center', alignItems: 'center' },
-  menuLabel: { fontSize: 15, flex: 1 },
+  menuLabel: { fontSize: 15, flex: 1, paddingLeft: 6 },
 });
 
 export default NotesScreen;

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, View, StyleSheet, Platform } from 'react-native';
+import { Text, View, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import {
@@ -12,6 +12,7 @@ import {
   TasksScreen as MobileTasksScreen,
 } from '../screens/mobile';
 import { AIAgentScreen } from '../screens/mobile/AIAgentScreen';
+import { NoteDetailScreen } from '../screens/mobile/NoteDetailScreen';
 import { SettingsStack } from './SettingsStack';
 import {
   FragmentsScreen,
@@ -21,7 +22,7 @@ import {
 import { KnowledgeGraphScreen as WebKnowledgeGraphScreen } from '../screens/web/KnowledgeGraphScreen';
 import { MainTabParamList } from './types';
 import { useTheme } from '../hooks/useTheme';
-import { BotIcon, NetworkIcon, BookIcon, SettingsIcon } from '../components/icons';
+import { BotIcon, NetworkIcon, BookIcon, SettingsIcon, ChevronLeftIcon } from '../components/icons';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -47,7 +48,14 @@ const TabIcon: React.FC<{ name: string; focused: boolean; colors: ReturnType<typ
 };
 
 // 手机端：笔记栈（笔记为主入口，AI/图谱/设置在右上角）
-const MobileNotesStack = createNativeStackNavigator();
+const MobileNotesStack = createNativeStackNavigator<{
+  NotesHome: undefined;
+  AIAgent: undefined;
+  KnowledgeGraph: undefined;
+  Settings: undefined;
+  Tasks: undefined;
+  NoteDetail: { noteId: number };
+}>();
 
 export const MobileNotesStackScreen: React.FC = () => {
   const colors = useTheme();
@@ -59,12 +67,25 @@ export const MobileNotesStackScreen: React.FC = () => {
         headerTitleStyle: { fontSize: 17, fontWeight: '600' },
         headerShadowVisible: false,
         animation: 'slide_from_right',
-      }}
+        headerBackTitleVisible: false,
+      } as any}
     >
       <MobileNotesStack.Screen
         name="NotesHome"
         component={NotesScreen}
         options={{ title: 'SparkNote AI' }}
+      />
+      <MobileNotesStack.Screen
+        name="NoteDetail"
+        component={NoteDetailScreen}
+        options={({ navigation }) => ({
+          title: '笔记详情',
+          headerLeft: () => (
+            <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
+              <ChevronLeftIcon size={22} color={colors.primary} />
+            </TouchableOpacity>
+          ),
+        })}
       />
       <MobileNotesStack.Screen
         name="AIAgent"

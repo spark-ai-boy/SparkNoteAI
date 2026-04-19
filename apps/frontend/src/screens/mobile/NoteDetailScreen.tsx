@@ -1,24 +1,28 @@
 // 笔记详情页（手机端）— 支持 Markdown 预览/编辑
 
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useLayoutEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TextInput,
+  TouchableOpacity,
   Pressable,
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { spacing } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useToastStore } from '../../stores/toastStore';
-import { notesApi, type Note } from '../../api/note';
+import { useServerConfigStore } from '../../stores/serverConfigStore';
+import { transformMarkdownImages } from '../../utils/imageUrlTransform';
+import { notesApi, type Note, type Tag } from '../../api/note';
 import {
   ChevronLeftIcon,
   EditIcon,
@@ -26,30 +30,84 @@ import {
   CheckIcon,
   CloseIcon,
   GlobeIcon,
-  TagIcon,
+  ClockIcon,
+  MessageSquareIcon,
+  FileTextIcon,
+  BoldIcon,
+  ItalicIcon,
+  HeadingIcon,
+  CodeIcon,
+  ListIcon,
+  ListOrderedIcon,
+  LinkIcon,
 } from '../../components/icons';
 import Markdown from 'react-native-marked';
 
-interface NoteDetailScreenProps {
-  noteId: number;
-  onBack: () => void;
-  onUpdate?: () => void;
-}
+type NoteDetailNavProp = NativeStackNavigationProp<{
+  NotesHome: undefined;
+  NoteDetail: { noteId: number };
+  AIAgent: undefined;
+  KnowledgeGraph: undefined;
+  Settings: undefined;
+  Tasks: undefined;
+}, 'NoteDetail'>;
 
 type ViewMode = 'preview' | 'edit';
 
-export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({ noteId, onBack, onUpdate }) => {
+const PLATFORM_MAP: Record<string, { label: string; color: string; Icon: React.FC<{ size: number; color: string }> }> = {
+  wechat: { label: '公众号', color: '#07C160', Icon: MessageSquareIcon },
+  xiaohongshu: { label: '小红书', color: '#FF2442', Icon: FileTextIcon },
+  bilibili: { label: 'B站', color: '#FB7299', Icon: FileTextIcon },
+  youtube: { label: 'YouTube', color: '#FF0000', Icon: GlobeIcon },
+};
+
+export const NoteDetailScreen: React.FC = () => {
+  const navigation = useNavigation<NoteDetailNavProp>();
+  const route = useRoute<any>();
+  const { noteId } = route.params as { noteId: number };
   const colors = useTheme();
+  const { baseUrl } = useServerConfigStore();
   const [note, setNote] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<ViewMode>('preview');
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
-  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
+  const [tags, setTags] = useState<Tag[]>([]);
   const textInputRef = useRef<TextInput>(null);
+  const [cursorPosition, setCursorPosition] = useState({ start: 0, end: 0 });
+  const saveRef = useRef<() => Promise<void>>(null);
+
+  // 设置原生 header 右侧按钮
+  useLayoutEffect(() => {
+    if (!note) return;
+    if (mode === 'edit') {
+      navigation.setOptions({
+        headerRight: () => (
+          <Pressable onPress={() => saveRef.current?.()} style={{ paddingHorizontal: 8, padding: 4 }}>
+            <CheckIcon size={20} color={colors.primary} />
+          </Pressable>
+        ),
+      });
+    } else {
+      navigation.setOptions({
+        headerRight: () => (
+          <View style={{ flexDirection: 'row', gap: spacing.xs }}>
+            <Pressable onPress={() => setMode('edit')} style={{ padding: 4 }}>
+              <EditIcon size={20} color={colors.primary} />
+            </Pressable>
+            <Pressable onPress={handleDelete} style={{ padding: 4 }}>
+              <TrashIcon size={20} color={colors.error} />
+            </Pressable>
+          </View>
+        ),
+      });
+    }
+    navigation.setOptions({ title: mode === 'edit' ? '编辑' : note.title });
+  }, [note, mode, colors.primary, colors.textSecondary, colors.error]);
 
   useEffect(() => {
     fetchNote();
+    fetchTags();
   }, [noteId]);
 
   const fetchNote = async () => {
@@ -66,6 +124,20 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({ noteId, onBa
     }
   };
 
+  const fetchTags = async () => {
+    try {
+      const res = await notesApi.getTags();
+      setTags(res);
+    } catch {
+      // 不影响主流程
+    }
+  };
+
+  const getTagColor = (tagName: string): string => {
+    const tag = tags.find((t) => t.name === tagName);
+    return tag?.color || colors.primary;
+  };
+
   const handleSave = async () => {
     if (!editTitle.trim()) {
       useToastStore.getState().showError('标题不能为空');
@@ -78,12 +150,14 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({ noteId, onBa
       });
       setNote(updated);
       setMode('preview');
-      onUpdate?.();
       useToastStore.getState().showSuccess('已保存');
     } catch {
       useToastStore.getState().showError('保存失败');
     }
   };
+
+  // 保持 ref 始终指向最新的 handleSave
+  saveRef.current = handleSave;
 
   const handleCancelEdit = () => {
     setMode('preview');
@@ -104,8 +178,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({ noteId, onBa
           onPress: async () => {
             try {
               await notesApi.deleteNote(noteId);
-              setShowDeleteSuccess(true);
-              onUpdate?.();
+              navigation.goBack();
             } catch {
               useToastStore.getState().showError('删除失败');
             }
@@ -115,12 +188,12 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({ noteId, onBa
     );
   };
 
-  const formatTime = (iso: string) => {
+  const formatDate = (iso: string) => {
     try {
       return new Date(iso).toLocaleString('zh-CN', {
         year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
+        month: 'long',
+        day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
       });
@@ -128,6 +201,47 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({ noteId, onBa
       return iso;
     }
   };
+
+  const formatTime = (iso: string): string => {
+    try {
+      return new Date(iso).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return '';
+    }
+  };
+
+  // Markdown 工具栏插入语法
+  const insertMarkdown = useCallback((prefix: string, suffix: string = '', placeholder: string = '') => {
+    const input = textInputRef.current;
+    if (!input) return;
+    input.focus();
+    const start = cursorPosition.start;
+    const end = cursorPosition.end;
+    const selectedText = editContent.slice(start, end);
+    const text = selectedText || placeholder;
+    const before = editContent.slice(0, start);
+    const after = editContent.slice(end);
+    const newContent = before + prefix + text + suffix + after;
+    setEditContent(newContent);
+    // 延迟设置光标位置
+    setTimeout(() => {
+      if (selectedText) {
+        input.setSelection?.(start + prefix.length, start + prefix.length + selectedText.length);
+      } else {
+        input.setSelection?.(start + prefix.length, start + prefix.length + placeholder.length);
+      }
+    }, 50);
+  }, [editContent, cursorPosition]);
+
+  const toolbarItems = [
+    { icon: HeadingIcon, prefix: '## ', placeholder: '标题', key: 'heading' },
+    { icon: BoldIcon, prefix: '**', suffix: '**', placeholder: '粗体', key: 'bold' },
+    { icon: ItalicIcon, prefix: '*', suffix: '*', placeholder: '斜体', key: 'italic' },
+    { icon: CodeIcon, prefix: '`', suffix: '`', placeholder: '代码', key: 'code' },
+    { icon: ListIcon, prefix: '- ', placeholder: '列表项', key: 'list' },
+    { icon: ListOrderedIcon, prefix: '1. ', placeholder: '列表项', key: 'olist' },
+    { icon: LinkIcon, prefix: '[', suffix: '](url)', placeholder: '链接文字', key: 'link' },
+  ];
 
   // Markdown 样式
   const markdownStyles = useMemo(() => ({
@@ -138,58 +252,60 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({ noteId, onBa
       paddingVertical: spacing.xs,
       backgroundColor: colors.backgroundSecondary,
       marginVertical: spacing.sm,
-      borderRadius: 4,
+      borderRadius: 8,
     },
     codespan: {
       backgroundColor: colors.backgroundSecondary,
       color: colors.primary,
       paddingHorizontal: spacing.xs,
       paddingVertical: 2,
-      borderRadius: 3,
+      borderRadius: 4,
+      fontSize: 14,
     },
     code: {
       backgroundColor: colors.backgroundSecondary,
       padding: spacing.md,
-      borderRadius: 8,
+      borderRadius: 12,
       marginVertical: spacing.sm,
     },
     link: {
-      color: colors.primary,
+      color: colors.blue,
     },
     hr: {
       borderColor: colors.border,
-      marginVertical: spacing.md,
+      marginVertical: spacing.lg,
     },
     paragraph: {
       marginVertical: spacing.xs,
+      lineHeight: 24,
     },
     h1: {
       color: colors.text,
       fontSize: 24,
       fontWeight: '700',
-      marginTop: spacing.lg,
+      marginTop: spacing.xl,
       marginBottom: spacing.md,
     },
     h2: {
       color: colors.text,
       fontSize: 20,
       fontWeight: '700',
-      marginTop: spacing.lg,
-      marginBottom: spacing.sm,
+      marginTop: spacing.xl,
+      marginBottom: spacing.md,
     },
     h3: {
       color: colors.text,
       fontSize: 18,
       fontWeight: '600',
-      marginTop: spacing.md,
+      marginTop: spacing.lg,
       marginBottom: spacing.sm,
     },
     table: {
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 8,
+      borderRadius: 12,
       overflow: 'hidden',
-      marginVertical: spacing.sm,
+      marginVertical: spacing.md,
     },
     tableRow: {
       borderBottomWidth: 1,
@@ -197,35 +313,37 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({ noteId, onBa
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
     },
-  }), [colors.text, colors.primary, colors.border, colors.backgroundSecondary]);
+    list: {
+      marginVertical: spacing.sm,
+    },
+    listItem: {
+      marginVertical: spacing.xs,
+      lineHeight: 22,
+    },
+  }), [colors.text, colors.primary, colors.border, colors.backgroundSecondary, colors.blue]);
+
+  const platformInfo = note ? PLATFORM_MAP[note.platform || ''] : null;
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!note) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Pressable onPress={onBack}>
-            <ChevronLeftIcon size={22} color={colors.text} />
-          </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>笔记详情</Text>
-          <View />
-        </View>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.center}>
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>笔记不存在或已被删除</Text>
-          <Pressable style={[styles.backBtn, { backgroundColor: colors.primary }]} onPress={onBack}>
+          <Pressable style={[styles.backBtn, { backgroundColor: colors.primary }]} onPress={() => navigation.goBack()}>
             <Text style={[styles.backBtnText, { color: colors.primaryForeground }]}>返回列表</Text>
           </Pressable>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -234,34 +352,10 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({ noteId, onBa
       style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <SafeAreaView style={styles.safeArea}>
-        {/* Header */}
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Pressable onPress={mode === 'edit' ? handleCancelEdit : onBack} style={styles.headerBtn}>
-            {mode === 'edit' ? <CloseIcon size={20} color={colors.textSecondary} /> : <ChevronLeftIcon size={22} color={colors.text} />}
-          </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
-            {mode === 'edit' ? '编辑' : '笔记详情'}
-          </Text>
-          {mode === 'edit' ? (
-            <Pressable onPress={handleSave} style={styles.headerBtn}>
-              <CheckIcon size={20} color={colors.primary} />
-            </Pressable>
-          ) : (
-            <View style={{ flexDirection: 'row', gap: spacing.xs }}>
-              <Pressable onPress={() => setMode('edit')} style={styles.headerBtn}>
-                <EditIcon size={20} color={colors.primary} />
-              </Pressable>
-              <Pressable onPress={handleDelete} style={styles.headerBtn}>
-                <TrashIcon size={20} color={colors.error} />
-              </Pressable>
-            </View>
-          )}
-        </View>
-
-        {mode === 'edit' ? (
-          // ========== 编辑模式 ==========
-          <ScrollView contentContainerStyle={styles.editContent}>
+      {mode === 'edit' ? (
+        // ========== 编辑模式 ==========
+        <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.background }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView contentContainerStyle={styles.editContent} keyboardShouldPersistTaps="handled">
             <TextInput
               ref={textInputRef}
               style={[styles.titleInput, { color: colors.text }]}
@@ -271,6 +365,22 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({ noteId, onBa
               placeholderTextColor={colors.textTertiary}
               autoFocus
             />
+            {/* Markdown 工具栏 */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.toolbar}>
+              {toolbarItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <TouchableOpacity
+                    key={item.key}
+                    style={[styles.toolbarBtn, { borderColor: colors.border }]}
+                    onPress={() => insertMarkdown(item.prefix, item.suffix, item.placeholder)}
+                    activeOpacity={0.6}
+                  >
+                    <Icon size={18} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
             <TextInput
               style={[styles.contentInput, { color: colors.text }]}
               value={editContent}
@@ -279,162 +389,172 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({ noteId, onBa
               placeholderTextColor={colors.textTertiary}
               multiline
               textAlignVertical="top"
+              onSelectionChange={(e) => setCursorPosition({ start: e.nativeEvent.selection.start, end: e.nativeEvent.selection.end })}
             />
           </ScrollView>
-        ) : (
-          // ========== 预览模式 ==========
-          <ScrollView contentContainerStyle={styles.previewContent}>
-            {/* 标题 */}
-            <Text style={[styles.noteTitle, { color: colors.text }]}>{note.title}</Text>
+        </KeyboardAvoidingView>
+      ) : (
+        // ========== 预览模式 ==========
+        <ScrollView contentContainerStyle={styles.previewContent}>
+          {/* 标题 */}
+          <Text style={[styles.noteTitle, { color: colors.text }]}>{note.title}</Text>
 
-            {/* 元信息 */}
+          {/* 统一内容卡片：元信息 + Markdown */}
+          <View style={[styles.contentCard, { backgroundColor: colors.backgroundSecondary }]}>
+            {platformInfo && (
+              <View style={[styles.platformBadge, { backgroundColor: platformInfo.color + '18' }]}>
+                <platformInfo.Icon size={14} color={platformInfo.color} />
+                <Text style={[styles.platformLabel, { color: platformInfo.color }]}>{platformInfo.label}</Text>
+              </View>
+            )}
+
             <View style={styles.metaRow}>
-              <Text style={[styles.metaText, { color: colors.textTertiary }]}>
-                创建于 {formatTime(note.created_at)}
-              </Text>
-              {note.updated_at !== note.created_at && (
-                <Text style={[styles.metaText, { color: colors.textTertiary }]}>
-                  更新于 {formatTime(note.updated_at)}
+              <View style={styles.metaItem}>
+                <ClockIcon size={14} color={colors.textTertiary} />
+                <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+                  {formatDate(note.created_at)}
                 </Text>
+              </View>
+              {note.updated_at !== note.created_at && (
+                <View style={[styles.metaItem, styles.metaItemUpdated]}>
+                  <ClockIcon size={14} color={colors.textTertiary} />
+                  <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+                    {formatDate(note.updated_at)}
+                  </Text>
+                </View>
               )}
             </View>
 
             {/* 标签 */}
             {note.tags.length > 0 && (
               <View style={styles.tagsRow}>
-                <TagIcon size={14} color={colors.textTertiary} />
-                <View style={styles.tagsList}>
-                  {note.tags.map((tag, i) => (
-                    <View key={i} style={[styles.tag, { backgroundColor: colors.backgroundSecondary }]}>
-                      <Text style={[styles.tagText, { color: colors.textSecondary }]}>{tag}</Text>
+                {note.tags.map((tag, i) => {
+                  const tagColor = getTagColor(tag);
+                  return (
+                    <View key={i} style={[styles.tag, { backgroundColor: tagColor + '18' }]}>
+                      <View style={[styles.tagDot, { backgroundColor: tagColor }]} />
+                      <Text style={[styles.tagText, { color: tagColor }]}>{tag}</Text>
                     </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* 来源 */}
-            {note.source_url && (
-              <View style={[styles.sourceRow, { backgroundColor: colors.backgroundSecondary }]}>
-                <GlobeIcon size={16} color={colors.textTertiary} />
-                <Text style={[styles.sourceText, { color: colors.textSecondary }]} numberOfLines={1}>
-                  {note.source_url}
-                </Text>
+                  );
+                })}
               </View>
             )}
 
             {/* Markdown 内容 */}
             {note.content ? (
-              <View style={[styles.contentSection, { borderTopColor: colors.border }]}>
-                <Markdown
-                  value={note.content}
-                  styles={markdownStyles as any}
-                  flatListProps={{
-                    scrollEnabled: false,
-                  }}
-                />
-              </View>
+              <Markdown
+                value={transformMarkdownImages(note.content, baseUrl)}
+                styles={markdownStyles as any}
+                flatListProps={{
+                  scrollEnabled: false,
+                }}
+              />
             ) : (
               <View style={styles.noContent}>
                 <Text style={[styles.noContentText, { color: colors.textTertiary }]}>暂无内容</Text>
               </View>
             )}
-          </ScrollView>
-        )}
-
-        {/* 删除成功提示 */}
-        {showDeleteSuccess && (
-          <View style={styles.deleteSuccessOverlay}>
-            <View style={[styles.deleteSuccessBox, { backgroundColor: colors.background }]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>笔记已删除</Text>
-              <Pressable style={[styles.modalBtn, { backgroundColor: colors.primary }]} onPress={onBack}>
-                <Text style={[styles.modalBtnText, { color: colors.primaryForeground }]}>返回列表</Text>
-              </Pressable>
-            </View>
           </View>
-        )}
-      </SafeAreaView>
+
+          {/* 来源链接 */}
+          {note.source_url && (
+            <View style={[styles.sourceRow, { backgroundColor: colors.primary + '08', borderColor: colors.primary + '20' }]}>
+              <GlobeIcon size={16} color={colors.blue} />
+              <Text style={[styles.sourceText, { color: colors.blue }]} numberOfLines={1}>
+                {note.source_url}
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      )}
     </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safeArea: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    minHeight: 56,
-  },
-  headerBtn: {
-    padding: spacing.xs,
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    flex: 1,
-    marginHorizontal: spacing.sm,
-  },
   // 预览模式
   previewContent: {
     padding: spacing.lg,
-    paddingBottom: spacing.xl,
+    paddingBottom: spacing.xl * 2,
   },
   noteTitle: {
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: '700',
-    marginBottom: spacing.md,
-    lineHeight: 30,
+    marginBottom: spacing.lg,
+    lineHeight: 34,
+    letterSpacing: -0.3,
   },
-  metaRow: {
-    marginBottom: spacing.md,
+  contentCard: {
+    borderRadius: 16,
+    padding: spacing.md,
+    gap: spacing.sm,
   },
-  metaText: {
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  tagsRow: {
+  platformBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-    flexWrap: 'wrap',
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 4,
   },
-  tagsList: {
+  platformLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  metaRow: {
+    gap: spacing.sm,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  metaItemUpdated: {
+    opacity: 0.7,
+  },
+  metaText: {
+    fontSize: 13,
+  },
+  tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.xs,
   },
   tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: 4,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+  },
+  tagDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   tagText: {
     fontSize: 12,
+    fontWeight: '500',
   },
   sourceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     padding: spacing.md,
-    borderRadius: 8,
+    borderRadius: 12,
+    borderWidth: 0.5,
     marginBottom: spacing.lg,
   },
   sourceText: {
     fontSize: 13,
     flex: 1,
   },
-  contentSection: {
-    borderTopWidth: 1,
-    paddingTop: spacing.lg,
-  },
   noContent: {
     alignItems: 'center',
-    paddingVertical: spacing.xl,
+    paddingVertical: spacing.xl * 2,
   },
   noContentText: {
     fontSize: 14,
@@ -442,12 +562,28 @@ const styles = StyleSheet.create({
   // 编辑模式
   editContent: {
     padding: spacing.lg,
+    paddingBottom: spacing.xl,
   },
   titleInput: {
     fontSize: 22,
     fontWeight: '700',
     marginBottom: spacing.md,
     minHeight: 40,
+  },
+  toolbar: {
+    flexDirection: 'row',
+    marginBottom: spacing.md,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 0.5,
+    gap: spacing.xs,
+  },
+  toolbarBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 0.5,
   },
   contentInput: {
     fontSize: 15,
@@ -469,38 +605,9 @@ const styles = StyleSheet.create({
   backBtn: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   backBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  deleteSuccessOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 100,
-  },
-  deleteSuccessBox: {
-    borderRadius: 16,
-    padding: spacing.xl,
-    width: '80%',
-    maxWidth: 320,
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    marginBottom: spacing.lg,
-  },
-  modalBtn: {
-    width: '100%',
-    paddingVertical: spacing.md,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  modalBtnText: {
     fontSize: 15,
     fontWeight: '600',
   },

@@ -67,7 +67,10 @@ export const useTransformImageUrl = (): ((src: string) => string) => {
 
 /**
  * 预处理 Markdown 内容，将其中所有相对图片路径（/uploads/...）替换为完整 URL
- * 与 transformImageUrl 逻辑保持一致：仅 Electron 和开发模式需要补全
+ * - Web 生产环境（Nginx 同源代理）：不需要替换
+ * - Web 开发模式（npm run dev:frontend）：补全为后端地址
+ * - Electron 桌面端（file:// 协议）：补全为后端地址
+ * - 移动端（React Native）：补全为服务器地址
  * @param content 原始 markdown 内容
  * @param baseUrl 后端服务器地址
  * @returns 替换后的 markdown 内容
@@ -75,8 +78,8 @@ export const useTransformImageUrl = (): ((src: string) => string) => {
 export const transformMarkdownImages = (content: string, baseUrl?: string): string => {
   if (!content) return content;
 
-  // 生产环境不需要替换
-  if (!isDevWeb() && !(hasLocation && window.location.protocol === 'file:')) {
+  // 生产环境 Web 且有同源代理：不需要替换
+  if (hasLocation && !isDevWeb() && window.location.protocol !== 'file:' && !baseUrl) {
     return content;
   }
 
@@ -84,8 +87,10 @@ export const transformMarkdownImages = (content: string, baseUrl?: string): stri
   let effectiveBase: string;
   if (isDevWeb()) {
     effectiveBase = API_CONFIG.BASE_URL.DEVELOPMENT.replace(/\/api$/, '');
+  } else if (baseUrl) {
+    effectiveBase = baseUrl;
   } else {
-    effectiveBase = baseUrl || 'http://localhost:8000';
+    effectiveBase = 'http://localhost:8000';
   }
   const normalizedBase = effectiveBase.replace(/\/$/, '');
 
