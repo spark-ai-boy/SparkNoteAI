@@ -1,22 +1,21 @@
 // 笔记列表（手机端）
 
-import React, { useState, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   StyleSheet,
   SectionList,
   ScrollView,
   RefreshControl,
-  Modal,
   Text,
-  Dimensions,
   TouchableOpacity,
   TextInput,
 } from 'react-native';
+import { MenuView, type MenuAction } from '@react-native-menu/menu';
 
 import { spacing } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
-import { PlusIcon, CloseIcon, BookIcon, MoreHorizontalIcon, BotIcon, NetworkIcon, SettingsIcon, UploadIcon, FileTextIcon, SearchIcon } from '../../components/icons';
+import { PlusIcon, CloseIcon, BookIcon, SearchIcon } from '../../components/icons';
 import { NoteCard } from './components/NoteCard';
 import { EmptyState } from './components/EmptyState';
 import { ImportDialog } from '../../components/ImportDialog';
@@ -72,13 +71,13 @@ const groupByDate = (items: Note[]): DateGroup[] => {
   return Array.from(groups.values());
 };
 
-const menuItems = [
-  { key: 'create', label: '新建笔记', icon: PlusIcon },
-  { key: 'import', label: '导入笔记', icon: UploadIcon },
-  { key: 'ai', label: 'AI 助手', icon: BotIcon },
-  { key: 'graph', label: '知识图谱', icon: NetworkIcon },
-  { key: 'tasks', label: '后台任务', icon: FileTextIcon },
-  { key: 'settings', label: '设置', icon: SettingsIcon },
+const menuActions: MenuAction[] = [
+  { id: 'create', title: '新建笔记', image: 'plus', imageColor: '#666666' },
+  { id: 'import', title: '导入笔记', image: 'square.and.arrow.up', imageColor: '#666666' },
+  { id: 'ai', title: 'AI 助手', image: 'bubble.left.and.bubble.right', imageColor: '#666666' },
+  { id: 'graph', title: '知识图谱', image: 'network', imageColor: '#666666' },
+  { id: 'tasks', title: '后台任务', image: 'doc.text', imageColor: '#666666' },
+  { id: 'settings', title: '设置', image: 'gear', imageColor: '#666666' },
 ];
 
 export const NotesScreen: React.FC = () => {
@@ -93,12 +92,11 @@ export const NotesScreen: React.FC = () => {
   const [showMenu, setShowMenu] = useState(false);
   const [tags, setTags] = useState<Tag[]>([]);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const menuButtonRef = useRef<any>(null);
-  const [menuRect, setMenuRect] = useState({ top: 0, right: 0 });
+  const [menuKey, setMenuKey] = useState(0); // Force re-render after action
 
-  const handleMenuAction = (key: string) => {
-    setShowMenu(false);
-    switch (key) {
+  const handleMenuAction = useCallback(({ nativeEvent }: { nativeEvent: { event: string } }) => {
+    const action = nativeEvent.event;
+    switch (action) {
       case 'create':
         handleCreateNote();
         break;
@@ -118,29 +116,25 @@ export const NotesScreen: React.FC = () => {
         navigation.navigate('Settings');
         break;
     }
-  };
-
-  const handleShowMenu = () => {
-    if (menuButtonRef.current) {
-      menuButtonRef.current.measureInWindow((x: number, y: number, w: number, h: number) => {
-        setMenuRect({ top: y + h, right: Dimensions.get('window').width - x - w });
-        setShowMenu(true);
-      });
-    }
-  };
+  }, [navigation]);
 
   // 右上角按钮
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <TouchableOpacity ref={menuButtonRef} onPress={handleShowMenu} activeOpacity={0.5}>
+        <MenuView
+          key={menuKey}
+          actions={menuActions}
+          onPressAction={handleMenuAction}
+          shouldOpenOnLongPress={false}
+        >
+          <View style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
             <PlusIcon size={22} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
+          </View>
+        </MenuView>
       ),
     });
-  }, [navigation, colors.textSecondary]);
+  }, [navigation, colors.primary, menuKey]);
 
   const fetchNotes = useCallback(async () => {
     try {
@@ -328,46 +322,6 @@ export const NotesScreen: React.FC = () => {
         onClose={() => setShowImportDialog(false)}
         onImport={handleImport}
       />
-
-      {/* iOS 风格弹出菜单 */}
-      <Modal visible={showMenu} transparent animationType="fade" onRequestClose={() => setShowMenu(false)}>
-        <View style={styles.menuOverlay}>
-          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setShowMenu(false)} />
-          <View
-            style={[
-              styles.menuContainer,
-              {
-                backgroundColor: colors.backgroundSecondary,
-                borderColor: colors.border,
-                top: menuRect.top,
-                right: menuRect.right,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.15,
-                shadowRadius: 8,
-              },
-            ]}
-            onStartShouldSetResponder={() => true}
-          >
-            {menuItems.map((item, i) => {
-              const Icon = item.icon;
-              return (
-                <TouchableOpacity
-                  key={item.key}
-                  style={styles.menuItem}
-                  onPress={() => handleMenuAction(item.key)}
-                  activeOpacity={0.6}
-                >
-                  <View style={styles.menuIconWrap}>
-                    <Icon size={18} color={colors.textSecondary} />
-                  </View>
-                  <Text style={[styles.menuLabel, { color: colors.text }]}>{item.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
@@ -388,11 +342,6 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 15, paddingVertical: spacing.xs },
   listContent: { padding: spacing.md, paddingBottom: spacing.xl, paddingTop: 0 },
   sectionHeader: { fontSize: 13, fontWeight: '600', paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.xs },
-  menuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.2)' },
-  menuContainer: { borderRadius: 12, borderWidth: 0.5, overflow: 'hidden', position: 'absolute', width: 150, paddingVertical: 6 },
-  menuItem: { flexDirection: 'row', alignItems: 'center', height: 40, paddingHorizontal: spacing.md },
-  menuIconWrap: { width: 24, height: 24, justifyContent: 'center', alignItems: 'center' },
-  menuLabel: { fontSize: 15, flex: 1, paddingLeft: 6 },
 });
 
 export default NotesScreen;

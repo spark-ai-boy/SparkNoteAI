@@ -14,6 +14,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { MenuView, type MenuAction } from '@react-native-menu/menu';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -43,6 +44,7 @@ import {
   ListOrderedIcon,
   LinkIcon,
   ImageIcon,
+  MoreHorizontalIcon,
 } from '../../components/icons';
 import Markdown from 'react-native-marked';
 
@@ -80,6 +82,25 @@ export const NoteDetailScreen: React.FC = () => {
   const [cursorPosition, setCursorPosition] = useState({ start: 0, end: 0 });
   const saveRef = useRef<() => Promise<void>>(null);
 
+  const handleMenuAction = useCallback(({ nativeEvent }: { nativeEvent: { event: string } }) => {
+    if (nativeEvent.event === 'edit') {
+      setMode('edit');
+    } else if (nativeEvent.event === 'delete') {
+      handleDelete();
+    }
+  }, []);
+
+  const menuActions: MenuAction[] = useMemo(() => [
+    { id: 'edit', title: '编辑', image: 'pencil', imageColor: '#666666' },
+    {
+      id: 'delete',
+      title: '删除',
+      image: 'trash',
+      imageColor: '#FF3B30',
+      attributes: { destructive: true },
+    },
+  ], []);
+
   // 设置原生 header 右侧按钮
   useLayoutEffect(() => {
     if (!note) return;
@@ -94,19 +115,20 @@ export const NoteDetailScreen: React.FC = () => {
     } else {
       navigation.setOptions({
         headerRight: () => (
-          <View style={{ flexDirection: 'row', gap: spacing.xs }}>
-            <Pressable onPress={() => setMode('edit')} style={{ padding: 4 }}>
-              <EditIcon size={20} color={colors.primary} />
-            </Pressable>
-            <Pressable onPress={handleDelete} style={{ padding: 4 }}>
-              <TrashIcon size={20} color={colors.error} />
-            </Pressable>
-          </View>
+          <MenuView
+            actions={menuActions}
+            onPressAction={handleMenuAction}
+            shouldOpenOnLongPress={false}
+          >
+            <View style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
+              <MoreHorizontalIcon size={20} color={colors.primary} />
+            </View>
+          </MenuView>
         ),
       });
     }
-    navigation.setOptions({ title: mode === 'edit' ? '编辑' : note.title });
-  }, [note, mode, colors.primary, colors.textSecondary, colors.error]);
+    navigation.setOptions({ title: mode === 'edit' ? '编辑' : '' });
+  }, [note, mode, colors.primary, menuActions, handleMenuAction]);
 
   useEffect(() => {
     fetchNote();
@@ -458,71 +480,75 @@ export const NoteDetailScreen: React.FC = () => {
           {/* 标题 */}
           <Text style={[styles.noteTitle, { color: colors.text }]}>{note.title}</Text>
 
-          {/* 统一内容卡片：元信息 + Markdown */}
-          <View style={[styles.contentCard, { backgroundColor: colors.backgroundSecondary }]}>
+          {/* 元信息行：平台标签 + 时间 */}
+          <View style={styles.metaRow}>
             {platformInfo && (
               <View style={[styles.platformBadge, { backgroundColor: platformInfo.color + '18' }]}>
                 <platformInfo.Icon size={14} color={platformInfo.color} />
                 <Text style={[styles.platformLabel, { color: platformInfo.color }]}>{platformInfo.label}</Text>
               </View>
             )}
-
-            <View style={styles.metaRow}>
-              <View style={styles.metaItem}>
+            <View style={styles.metaItem}>
+              <ClockIcon size={14} color={colors.textTertiary} />
+              <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+                {formatDate(note.created_at)}
+              </Text>
+            </View>
+            {note.updated_at !== note.created_at && (
+              <View style={[styles.metaItem, styles.metaItemUpdated]}>
                 <ClockIcon size={14} color={colors.textTertiary} />
                 <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-                  {formatDate(note.created_at)}
+                  {formatDate(note.updated_at)}
                 </Text>
-              </View>
-              {note.updated_at !== note.created_at && (
-                <View style={[styles.metaItem, styles.metaItemUpdated]}>
-                  <ClockIcon size={14} color={colors.textTertiary} />
-                  <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-                    {formatDate(note.updated_at)}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {/* 标签 */}
-            {note.tags.length > 0 && (
-              <View style={styles.tagsRow}>
-                {note.tags.map((tag, i) => {
-                  const tagColor = getTagColor(tag);
-                  return (
-                    <View key={i} style={[styles.tag, { backgroundColor: tagColor + '18' }]}>
-                      <View style={[styles.tagDot, { backgroundColor: tagColor }]} />
-                      <Text style={[styles.tagText, { color: tagColor }]}>{tag}</Text>
-                    </View>
-                  );
-                })}
-              </View>
-            )}
-
-            {/* Markdown 内容 */}
-            {note.content ? (
-              <Markdown
-                value={transformMarkdownImages(note.content, baseUrl)}
-                styles={markdownStyles as any}
-                flatListProps={{
-                  scrollEnabled: false,
-                }}
-              />
-            ) : (
-              <View style={styles.noContent}>
-                <Text style={[styles.noContentText, { color: colors.textTertiary }]}>暂无内容</Text>
               </View>
             )}
           </View>
 
+          {/* 标签 */}
+          {note.tags.length > 0 && (
+            <View style={styles.tagsRow}>
+              {note.tags.map((tag, i) => {
+                const tagColor = getTagColor(tag);
+                return (
+                  <View key={i} style={[styles.tag, { backgroundColor: tagColor + '18' }]}>
+                    <View style={[styles.tagDot, { backgroundColor: tagColor }]} />
+                    <Text style={[styles.tagText, { color: tagColor }]}>{tag}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
+          {/* 分隔线 */}
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+          {/* Markdown 内容 */}
+          {note.content ? (
+            <Markdown
+              value={transformMarkdownImages(note.content, baseUrl)}
+              styles={markdownStyles as any}
+              flatListProps={{
+                scrollEnabled: false,
+                contentContainerStyle: { backgroundColor: colors.background },
+              }}
+            />
+          ) : (
+            <View style={styles.noContent}>
+              <Text style={[styles.noContentText, { color: colors.textTertiary }]}>暂无内容</Text>
+            </View>
+          )}
+
           {/* 来源链接 */}
           {note.source_url && (
-            <View style={[styles.sourceRow, { backgroundColor: colors.primary + '08', borderColor: colors.primary + '20' }]}>
-              <GlobeIcon size={16} color={colors.blue} />
-              <Text style={[styles.sourceText, { color: colors.blue }]} numberOfLines={1}>
-                {note.source_url}
-              </Text>
-            </View>
+            <>
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              <View style={styles.sourceRow}>
+                <GlobeIcon size={16} color={colors.blue} />
+                <Text style={[styles.sourceText, { color: colors.blue }]} numberOfLines={1}>
+                  {note.source_url}
+                </Text>
+              </View>
+            </>
           )}
         </ScrollView>
       )}
@@ -534,20 +560,23 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   // 预览模式
   previewContent: {
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.xl * 2,
   },
   noteTitle: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: '700',
-    marginBottom: spacing.lg,
-    lineHeight: 34,
-    letterSpacing: -0.3,
+    marginBottom: spacing.md,
+    lineHeight: 38,
+    letterSpacing: -0.5,
   },
-  contentCard: {
-    borderRadius: 16,
-    padding: spacing.md,
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
     gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
   platformBadge: {
     flexDirection: 'row',
@@ -562,9 +591,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  metaRow: {
-    gap: spacing.sm,
-  },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -575,6 +601,10 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 13,
+  },
+  divider: {
+    height: 0.5,
+    marginVertical: spacing.lg,
   },
   tagsRow: {
     flexDirection: 'row',
@@ -602,10 +632,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    padding: spacing.md,
-    borderRadius: 12,
-    borderWidth: 0.5,
-    marginBottom: spacing.lg,
+    paddingVertical: spacing.md,
   },
   sourceText: {
     fontSize: 13,

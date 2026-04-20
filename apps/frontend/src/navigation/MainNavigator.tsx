@@ -79,7 +79,9 @@ export const MobileNotesStackScreen: React.FC = () => {
         name="NoteDetail"
         component={NoteDetailScreen}
         options={({ navigation }) => ({
-          title: '笔记详情',
+          title: '',
+          headerStyle: { backgroundColor: colors.background },
+          headerShadowVisible: false,
           headerLeft: () => (
             <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
               <ChevronLeftIcon size={22} color={colors.primary} />
