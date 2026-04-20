@@ -46,17 +46,24 @@ interface DateGroup {
 const groupByDate = (items: Note[]): DateGroup[] => {
   const groups: Map<string, DateGroup> = new Map();
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
   items.forEach((item) => {
     const date = new Date(item.created_at);
-    const dateKey = date.toISOString().split('T')[0];
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    // Use local date for key to avoid timezone mismatch
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateKey = `${year}-${month}-${day}`;
 
+    const localDate = new Date(year, parseInt(month) - 1, parseInt(day));
     let dateLabel: string;
-    if (date.toDateString() === today.toDateString()) {
+    if (localDate.getTime() === today.getTime()) {
       dateLabel = '今天';
-    } else if (date.toDateString() === yesterday.toDateString()) {
+    } else if (localDate.getTime() === yesterday.getTime()) {
       dateLabel = '昨天';
     } else {
       dateLabel = date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -275,7 +282,7 @@ export const NotesScreen: React.FC = () => {
         </ScrollView>
       )}
       <View style={styles.listWrapper}>
-        <View style={[styles.timelineGlobalLine, { backgroundColor: colors.border }]} />
+        <View style={[styles.timelineGlobalLine, { backgroundColor: colors.borderLight }]} />
         <SectionList
         sections={groupedNotes}
         renderItem={({ item, index, section }) => {
@@ -287,7 +294,7 @@ export const NotesScreen: React.FC = () => {
           return (
             <View style={styles.timelineRow}>
               <View style={styles.timelineColumn}>
-                <View style={[styles.timelineDot, isFirstInGroup ? styles.timelineDotFirst : styles.timelineDotSecondary, isFirstInGroup ? { backgroundColor: colors.primary } : null]} />
+                <View style={[styles.timelineDot, isFirstInGroup ? styles.timelineDotFirst : styles.timelineDotSecondary, isFirstInGroup ? { backgroundColor: colors.primary } : { backgroundColor: colors.border }]} />
               </View>
               <View style={styles.timelineCard}>
                 <NoteCard
@@ -346,7 +353,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   searchBar: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: 0 },
   tagBar: { maxHeight: 40 },
-  tagBarContent: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.xs },
+  tagBarContent: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.md, gap: spacing.xs },
   tagChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: 12, gap: 4, height: 28 },
   tagChipText: { fontSize: 13, fontWeight: '500' },
   tagDot: { width: 6, height: 6, borderRadius: 3 },
@@ -357,8 +364,8 @@ const styles = StyleSheet.create({
   searchTagClose: { padding: 2 },
   searchInput: { flex: 1, fontSize: 15, paddingVertical: spacing.xs },
   listWrapper: { flex: 1, position: 'relative' },
-  timelineGlobalLine: { position: 'absolute', left: spacing.lg + spacing.lg / 2, top: 0, bottom: 0, width: 2, zIndex: 0 },
-  listContent: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, paddingTop: 0 },
+  timelineGlobalLine: { position: 'absolute', left: 20, top: 0, bottom: 0, width: 1.5, zIndex: 0 },
+  listContent: { paddingVertical: spacing.md, paddingLeft: 8, paddingRight: spacing.lg, paddingBottom: spacing.xl, paddingTop: 0 },
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, marginBottom: spacing.sm },
   sectionHeaderText: { fontSize: 13, fontWeight: '600', flex: 1 },
   timelineRow: { flexDirection: 'row', alignItems: 'flex-start' },

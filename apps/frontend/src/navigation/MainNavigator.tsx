@@ -73,7 +73,11 @@ export const MobileNotesStackScreen: React.FC = () => {
       <MobileNotesStack.Screen
         name="NotesHome"
         component={NotesScreen}
-        options={{ title: 'SparkNote AI' }}
+        options={{
+          title: 'SparkNote AI',
+          headerStyle: { backgroundColor: colors.background },
+          headerShadowVisible: false,
+        }}
       />
       <MobileNotesStack.Screen
         name="NoteDetail"
