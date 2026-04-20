@@ -13,6 +13,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Linking,
 } from 'react-native';
 import { MenuView, type MenuAction } from '@react-native-menu/menu';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -46,7 +47,8 @@ import {
   ImageIcon,
   MoreHorizontalIcon,
 } from '../../components/icons';
-import Markdown from 'react-native-marked';
+import { View as RNView, Text as RNText } from 'react-native';
+import Markdown, { Renderer } from 'react-native-marked';
 
 type NoteDetailNavProp = NativeStackNavigationProp<{
   NotesHome: undefined;
@@ -325,9 +327,11 @@ export const NoteDetailScreen: React.FC = () => {
       borderLeftColor: colors.border,
       paddingLeft: spacing.md,
       paddingVertical: spacing.xs,
-      backgroundColor: colors.backgroundSecondary,
+      backgroundColor: '#F0F0F0',
       marginVertical: spacing.sm,
       borderRadius: 8,
+      fontStyle: 'italic',
+      color: colors.textSecondary,
     },
     codespan: {
       backgroundColor: colors.backgroundSecondary,
@@ -338,10 +342,9 @@ export const NoteDetailScreen: React.FC = () => {
       fontSize: 14,
     },
     code: {
-      backgroundColor: colors.backgroundSecondary,
-      padding: spacing.md,
-      borderRadius: 12,
-      marginVertical: spacing.sm,
+      padding: 0,
+      marginVertical: 0,
+      backgroundColor: 'transparent',
     },
     link: {
       color: colors.blue,
@@ -396,6 +399,50 @@ export const NoteDetailScreen: React.FC = () => {
       lineHeight: 22,
     },
   }), [colors.text, colors.primary, colors.border, colors.backgroundSecondary, colors.blue]);
+
+  // 自定义 renderer：引用内容加斜体，代码块加 macOS 风格标题栏
+  const customRenderer = useMemo(() => {
+    const r = new Renderer();
+    const originalBlockquote = r.blockquote.bind(r);
+    r.blockquote = (children, styles) => {
+      const italicChildren = React.Children.map(children ?? [], (child) => {
+        if (typeof child === 'string') {
+          return <RNText style={{ fontStyle: 'italic', color: colors.textSecondary }}>{child}</RNText>;
+        }
+        if (React.isValidElement(child)) {
+          return React.cloneElement(child as React.ReactElement, {
+            style: { fontStyle: 'italic', color: colors.textSecondary },
+          } as any);
+        }
+        return child;
+      });
+      return originalBlockquote(italicChildren as any, styles);
+    };
+    const originalCode = r.code.bind(r);
+    r.code = (text, language, containerStyle, textStyle) => {
+      const codeTextStyle: any = {
+        ...textStyle,
+        backgroundColor: 'transparent',
+        borderRadius: 0,
+        padding: spacing.md,
+        marginTop: 0,
+      };
+      return (
+        <View style={[styles.codeBlockContainer, { backgroundColor: colors.backgroundSecondary }]}>
+          <View style={[styles.codeBlockHeader, { backgroundColor: colors.borderLight }]}>
+            <View style={styles.trafficLightDots}>
+              <View style={[styles.dot, styles.dotRed]} />
+              <View style={[styles.dot, styles.dotYellow]} />
+              <View style={[styles.dot, styles.dotGreen]} />
+            </View>
+            {language && <Text style={[styles.codeBlockLanguage, { color: colors.textTertiary }]}>{language}</Text>}
+          </View>
+          {originalCode(text, language, { backgroundColor: 'transparent', borderRadius: 0, marginVertical: 0 }, codeTextStyle)}
+        </View>
+      );
+    };
+    return r;
+  }, [colors.textSecondary, colors.backgroundSecondary, colors.borderLight, colors.textTertiary]);
 
   const platformInfo = note ? PLATFORM_MAP[note.platform || ''] : null;
 
@@ -527,6 +574,7 @@ export const NoteDetailScreen: React.FC = () => {
             <Markdown
               value={transformMarkdownImages(note.content, baseUrl)}
               styles={markdownStyles as any}
+              renderer={customRenderer}
               flatListProps={{
                 scrollEnabled: false,
                 contentContainerStyle: { backgroundColor: colors.background },
@@ -542,12 +590,14 @@ export const NoteDetailScreen: React.FC = () => {
           {note.source_url && (
             <>
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
-              <View style={styles.sourceRow}>
+              <TouchableOpacity
+                style={[styles.sourceButton, { backgroundColor: colors.backgroundSecondary }]}
+                onPress={() => Linking.openURL(note.source_url!)}
+                activeOpacity={0.7}
+              >
                 <GlobeIcon size={16} color={colors.blue} />
-                <Text style={[styles.sourceText, { color: colors.blue }]} numberOfLines={1}>
-                  {note.source_url}
-                </Text>
-              </View>
+                <Text style={[styles.sourceButtonText, { color: colors.blue }]}>原文链接</Text>
+              </TouchableOpacity>
             </>
           )}
         </ScrollView>
@@ -565,10 +615,10 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl * 2,
   },
   noteTitle: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: '700',
     marginBottom: spacing.md,
-    lineHeight: 38,
+    lineHeight: 32,
     letterSpacing: -0.5,
   },
   metaRow: {
@@ -628,15 +678,47 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
-  sourceRow: {
+  sourceButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 10,
+    alignSelf: 'center',
   },
-  sourceText: {
-    fontSize: 13,
-    flex: 1,
+  sourceButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  codeBlockContainer: {
+    borderRadius: 12,
+    marginVertical: spacing.sm,
+    overflow: 'hidden',
+  },
+  codeBlockHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    justifyContent: 'space-between',
+  },
+  trafficLightDots: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  dot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  dotRed: { backgroundColor: '#FF5F57' },
+  dotYellow: { backgroundColor: '#FFBD2E' },
+  dotGreen: { backgroundColor: '#28C840' },
+  codeBlockLanguage: {
+    fontSize: 12,
+    fontWeight: '500',
+    textTransform: 'uppercase',
   },
   noContent: {
     alignItems: 'center',
