@@ -274,27 +274,42 @@ export const NotesScreen: React.FC = () => {
           )}
         </ScrollView>
       )}
-      <SectionList
+      <View style={styles.listWrapper}>
+        <View style={[styles.timelineGlobalLine, { backgroundColor: colors.border }]} />
+        <SectionList
         sections={groupedNotes}
-        renderItem={({ item }) => {
+        renderItem={({ item, index, section }) => {
           const tagColorMap: Record<string, string> = {};
           item.tags.forEach((t) => {
             tagColorMap[t] = getTagColor(t);
           });
+          const isFirstInGroup = index === 0;
           return (
-            <NoteCard
-              title={item.title}
-              summary={item.summary || item.content?.slice(0, 100)}
-              tags={item.tags}
-              tagColors={tagColorMap}
-              platform={item.platform}
-              createdAt={item.created_at}
-              onPress={() => navigation.navigate('NoteDetail', { noteId: item.id })}
-            />
+            <View style={styles.timelineRow}>
+              <View style={styles.timelineColumn}>
+                <View style={[styles.timelineDot, isFirstInGroup ? styles.timelineDotFirst : styles.timelineDotSecondary, isFirstInGroup ? { backgroundColor: colors.primary } : null]} />
+              </View>
+              <View style={styles.timelineCard}>
+                <NoteCard
+                  title={item.title}
+                  summary={item.summary || item.content?.slice(0, 100)}
+                  tags={item.tags}
+                  tagColors={tagColorMap}
+                  platform={item.platform}
+                  createdAt={item.created_at}
+                  onPress={() => navigation.navigate('NoteDetail', { noteId: item.id })}
+                />
+              </View>
+            </View>
           );
         }}
         renderSectionHeader={({ section }) => (
-          <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>{section.dateLabel}</Text>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.timelineColumn}>
+              <View style={[styles.timelineDot, styles.timelineDotFirst, { backgroundColor: colors.primary }]} />
+            </View>
+            <Text style={[styles.sectionHeaderText, { color: colors.textSecondary }]}>{section.dateLabel}</Text>
+          </View>
         )}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
@@ -316,6 +331,7 @@ export const NotesScreen: React.FC = () => {
         }
         stickySectionHeadersEnabled={false}
       />
+      </View>
 
       <ImportDialog
         visible={showImportDialog}
@@ -340,8 +356,17 @@ const styles = StyleSheet.create({
   searchTagChipText: { fontSize: 13, fontWeight: '600' },
   searchTagClose: { padding: 2 },
   searchInput: { flex: 1, fontSize: 15, paddingVertical: spacing.xs },
-  listContent: { padding: spacing.md, paddingBottom: spacing.xl, paddingTop: 0 },
-  sectionHeader: { fontSize: 13, fontWeight: '600', paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.xs },
+  listWrapper: { flex: 1, position: 'relative' },
+  timelineGlobalLine: { position: 'absolute', left: spacing.lg + spacing.lg / 2, top: 0, bottom: 0, width: 2, zIndex: 0 },
+  listContent: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, paddingTop: 0 },
+  sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, marginBottom: spacing.sm },
+  sectionHeaderText: { fontSize: 13, fontWeight: '600', flex: 1 },
+  timelineRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  timelineColumn: { position: 'relative', width: spacing.lg, alignItems: 'center', justifyContent: 'center', paddingTop: spacing.md, paddingBottom: spacing.md },
+  timelineDot: { width: 6, height: 6, borderRadius: 3 },
+  timelineDotFirst: { width: 8, height: 8, borderRadius: 4 },
+  timelineDotSecondary: { opacity: 0.5 },
+  timelineCard: { flex: 1 },
 });
 
 export default NotesScreen;
