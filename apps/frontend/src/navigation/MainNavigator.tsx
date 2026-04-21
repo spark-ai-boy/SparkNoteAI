@@ -13,6 +13,7 @@ import {
 } from '../screens/mobile';
 import { AIAgentScreen } from '../screens/mobile/AIAgentScreen';
 import { NoteDetailScreen } from '../screens/mobile/NoteDetailScreen';
+import { ImportScreen } from '../screens/mobile/ImportScreen';
 import { SettingsStack } from './SettingsStack';
 import {
   FragmentsScreen,
@@ -55,6 +56,7 @@ const MobileNotesStack = createNativeStackNavigator<{
   Settings: undefined;
   Tasks: undefined;
   NoteDetail: { noteId: number };
+  Import: undefined;
 }>();
 
 export const MobileNotesStackScreen: React.FC = () => {
@@ -82,6 +84,20 @@ export const MobileNotesStackScreen: React.FC = () => {
       <MobileNotesStack.Screen
         name="NoteDetail"
         component={NoteDetailScreen}
+        options={({ navigation }) => ({
+          title: '',
+          headerStyle: { backgroundColor: colors.background },
+          headerShadowVisible: false,
+          headerLeft: () => (
+            <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
+              <ChevronLeftIcon size={22} color={colors.primary} />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+      <MobileNotesStack.Screen
+        name="Import"
+        component={ImportScreen}
         options={({ navigation }) => ({
           title: '',
           headerStyle: { backgroundColor: colors.background },

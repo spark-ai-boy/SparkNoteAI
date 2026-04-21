@@ -139,6 +139,29 @@ export const cancelTask = async (taskId: number): Promise<Task> => {
 };
 
 /**
+ * 根据 URL 自动识别平台
+ */
+export const detectPlatformFromUrl = (url: string): string => {
+  const lowerUrl = url.toLowerCase();
+  if (lowerUrl.includes('mp.weixin.qq.com') || lowerUrl.includes('wechat')) {
+    return 'wechat';
+  }
+  if (lowerUrl.includes('xiaohongshu.com') || lowerUrl.includes('xhslink.com') || lowerUrl.includes('小红书')) {
+    return 'xiaohongshu';
+  }
+  if (lowerUrl.includes('bilibili.com') || lowerUrl.includes('b23.tv')) {
+    return 'bilibili';
+  }
+  if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be')) {
+    return 'youtube';
+  }
+  if (lowerUrl.includes('zhihu.com')) {
+    return 'zhihu';
+  }
+  return 'other';
+};
+
+/**
  * 获取支持的平台列表
  */
 export const getPlatforms = async (): Promise<Platform[]> => {

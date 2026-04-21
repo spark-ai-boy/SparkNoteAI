@@ -13,7 +13,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.sparknoteai.app"
+      "bundleIdentifier": "com.sparknoteai.app",
+      "associatedDomains": ["applinks:sparknoteai.com"]
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +24,24 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.sparknoteai.app"
+      "package": "com.sparknoteai.app",
+      "intentFilters": [
+        {
+          "action": "SEND",
+          "category": ["DEFAULT"],
+          "data": { "mimeType": "text/plain" }
+        },
+        {
+          "action": "VIEW",
+          "category": ["DEFAULT", "BROWSABLE"],
+          "data": { "scheme": "sparknoteai", "host": "import" }
+        },
+        {
+          "action": "VIEW",
+          "category": ["DEFAULT", "BROWSABLE"],
+          "data": { "scheme": "https", "host": "sparknoteai.com", "pathPrefix": "/import" }
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

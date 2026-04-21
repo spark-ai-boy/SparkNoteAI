@@ -18,9 +18,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { PlusIcon, CloseIcon, BookIcon, SearchIcon } from '../../components/icons';
 import { NoteCard } from './components/NoteCard';
 import { EmptyState } from './components/EmptyState';
-import { ImportDialog } from '../../components/ImportDialog';
 import { notesApi, type Note, type Tag } from '../../api/note';
-import { createImportTask } from '../../api/importTask';
 import { useToast } from '../../hooks/useToast';
 import { useToastStore } from '../../stores/toastStore';
 import { useNavigation } from '@react-navigation/native';
@@ -33,6 +31,7 @@ type MobileNotesStackParamList = {
   Settings: undefined;
   Tasks: undefined;
   NoteDetail: { noteId: number };
+  Import: { url?: string };
 };
 
 type NavProp = NativeStackNavigationProp<MobileNotesStackParamList, 'NotesHome'>;
@@ -95,7 +94,6 @@ export const NotesScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showImportDialog, setShowImportDialog] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [tags, setTags] = useState<Tag[]>([]);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -108,7 +106,7 @@ export const NotesScreen: React.FC = () => {
         handleCreateNote();
         break;
       case 'import':
-        setShowImportDialog(true);
+        navigation.navigate('Import');
         break;
       case 'ai':
         navigation.navigate('AIAgent');
@@ -195,16 +193,6 @@ export const NotesScreen: React.FC = () => {
       toast.success('已创建新笔记');
     } catch (e: any) {
       toast.error('创建笔记失败');
-    }
-  };
-
-  const handleImport = async (url: string, platform: string) => {
-    try {
-      await createImportTask({ url, platform });
-      toast.success('导入任务已创建');
-      setShowImportDialog(false);
-    } catch (e: any) {
-      toast.error('创建导入任务失败');
     }
   };
 
@@ -339,12 +327,6 @@ export const NotesScreen: React.FC = () => {
         stickySectionHeadersEnabled={false}
       />
       </View>
-
-      <ImportDialog
-        visible={showImportDialog}
-        onClose={() => setShowImportDialog(false)}
-        onImport={handleImport}
-      />
     </View>
   );
 };
