@@ -1,0 +1,229 @@
+// 知识图谱 WebView 力导向图（手机端）
+
+import React, { useCallback } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { WebView, type WebViewMessageEvent } from 'react-native-webview';
+
+import { useTheme } from '../../../hooks/useTheme';
+import type { GraphNode, GraphEdge } from '../../../api/knowledgeGraph';
+
+const NODE_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
+  concept: { label: '概念', color: '#10B981' },
+  topic: { label: '主题', color: '#8B5CF6' },
+  entity: { label: '实体', color: '#06B6D4' },
+  fragment: { label: '片段', color: '#4F46E5' },
+  tag: { label: '标签', color: '#F59E0B' },
+};
+
+interface Props {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  onNodeClick?: (node: GraphNode) => void;
+}
+
+export const MobileKnowledgeGraphView: React.FC<Props> = ({ nodes, edges, onNodeClick }) => {
+  const colors = useTheme();
+
+  const colorMap: Record<string, string> = {};
+  const labelMap: Record<string, string> = {};
+  Object.entries(NODE_TYPE_CONFIG).forEach(([k, v]) => {
+    colorMap[k] = v.color;
+    labelMap[k] = v.label;
+  });
+
+  const graphNodes = nodes.map((n) => ({
+    id: n.id,
+    name: n.name,
+    node_type: n.node_type,
+    description: n.description || '',
+  }));
+
+  const graphLinks = edges
+    .filter((e) => e.source_node_id != null && e.target_node_id != null)
+    .map((e) => ({
+      source: e.source_node_id,
+      target: e.target_node_id,
+      edge_type: e.edge_type || '',
+      description: e.description || '',
+    }));
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#F5F5F7}
+svg{width:100%;height:100%;display:block}
+.link{stroke-opacity:.4}
+.node-label{font-size:9px;font-weight:600;fill:#1D1D1F;pointer-events:none;text-anchor:middle}
+.legend{position:absolute;bottom:12px;left:12px;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-radius:10px;padding:8px 12px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.legend-title{font-size:11px;font-weight:600;color:#1D1D1F;margin-bottom:4px}
+.legend-item{display:flex;align-items:center;gap:6px;margin-top:3px}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.legend-text{font-size:11px;color:#666}
+#status{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#999;font-size:14px}
+</style>
+</head>
+<body>
+<svg id="graph"></svg>
+<div id="status">正在渲染图谱...</div>
+<div class="legend" id="legend"></div>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+(function(){
+  var DATA = ${JSON.stringify({ nodes: graphNodes, links: graphLinks })};
+  var COLORS = ${JSON.stringify(colorMap)};
+  var LABELS = ${JSON.stringify(labelMap)};
+  var statusEl = document.getElementById('status');
+  var legendEl = document.getElementById('legend');
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+
+  function waitD3(){
+    if(typeof d3!=='undefined'){startGraph();return}
+    setTimeout(waitD3,100);
+  }
+  setTimeout(function(){
+    if(typeof d3==='undefined'){statusEl.textContent='d3加载失败';statusEl.style.color='#e53e3e'}
+  },10000);
+  waitD3();
+
+  function startGraph(){
+    statusEl.textContent='渲染中...';
+
+    var nds = (DATA.nodes || []).map(function(n){
+      return {id: Number(n.id), name: n.name, node_type: n.node_type, description: n.description||''};
+    });
+    var lks = (DATA.links || []).map(function(l){
+      return {source: Number(l.source), target: Number(l.target)};
+    });
+
+    var svg = d3.select('#graph').attr('viewBox',[0,0,vw,vh]);
+    var zoom = d3.zoom().scaleExtent([.3,5]).on('zoom',function(e){group.attr('transform',e.transform)});
+    svg.call(zoom);
+
+    // 箭头标记
+    svg.append('defs').append('marker')
+      .attr('id','arrow').attr('viewBox','0 -5 10 10')
+      .attr('refX',14).attr('refY',0).attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
+      .append('path').attr('d','M0,-5L10,0L0,5').attr('fill','#999');
+
+    var group = svg.append('g');
+
+    // 画边
+    var link = group.selectAll('.link').data(lks).join('line')
+      .attr('class','link')
+      .attr('stroke','#999').attr('stroke-width',1.5)
+      .attr('marker-end','url(#arrow)');
+
+    // 画节点
+    var nodeGroup = group.selectAll('.ng').data(nds).join('g')
+      .attr('class','ng')
+      .call(d3.drag().on('start',dragStart).on('drag',dragMove).on('end',dragEnd));
+
+    nodeGroup.append('circle')
+      .attr('r',6)
+      .attr('fill',function(d){ return COLORS[d.node_type]||'#666'; })
+      .attr('stroke','#fff').attr('stroke-width',2)
+      .on('click',function(ev,d){
+        try{window.ReactNativeWebView.postMessage(JSON.stringify({type:'nodeClick',id:d.id,name:d.name,nodeType:d.node_type,description:d.description}));}catch(e){}
+      });
+
+    // 画文字标签
+    group.selectAll('.lg').data(nds).join('g').attr('class','lg')
+      .append('text').attr('class','node-label').attr('dy',18)
+      .text(function(d){
+        var t = d.name||'';
+        return t.length>12 ? t.slice(0,11)+'...' : t;
+      });
+
+    // 力导向模拟
+    var sim = d3.forceSimulation(nds)
+      .force('link',d3.forceLink(lks).id(function(d){return d.id}).distance(80).strength(.3))
+      .force('charge',d3.forceManyBody().strength(-120))
+      .force('center',d3.forceCenter(vw/2,vh/2))
+      .force('collision',d3.forceCollide().radius(20))
+      .on('tick',ticked);
+
+    function ticked(){
+      link.attr('x1',function(d){return d.source.x})
+        .attr('y1',function(d){return d.source.y})
+        .attr('x2',function(d){return d.target.x})
+        .attr('y2',function(d){return d.target.y});
+      group.selectAll('.ng').attr('transform',function(d){return 'translate('+d.x+','+d.y+')'});
+      group.selectAll('.lg').attr('transform',function(d){return 'translate('+d.x+','+d.y+')'});
+    }
+
+    function dragStart(ev,d){if(!ev.active)sim.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y;}
+    function dragMove(ev,d){d.fx=ev.x;d.fy=ev.y;}
+    function dragEnd(ev,d){if(!ev.active)sim.alphaTarget(0);d.fx=null;d.fy=null;}
+
+    // 适配屏幕
+    setTimeout(function(){
+      try{
+        var bbox = group.node().getBBox();
+        var pad = 40;
+        var bw = bbox.width || 1;
+        var bh = bbox.height || 1;
+        var scale = Math.min((vw-pad*2)/bw,(vh-pad*2)/bh,1.5);
+        var tx = (vw-bw*scale)/2-bbox.x*scale;
+        var ty = (vh-bh*scale)/2-bbox.y*scale;
+        svg.transition().duration(600).call(zoom.transform,d3.zoomIdentity.translate(tx,ty).scale(scale));
+      }catch(e){
+        console.error('fitToScreen error:',e);
+      }
+      statusEl.style.display='none';
+    },2000);
+
+    // 图例
+    var typeSet = {};
+    nds.forEach(function(n){ typeSet[n.node_type] = true; });
+    var legendHtml = '<div class="legend-title">图例</div>';
+    Object.keys(typeSet).forEach(function(t){
+      var c = COLORS[t] || '#666';
+      var l = LABELS[t] || t;
+      legendHtml += '<div class="legend-item"><span class="legend-dot" style="background:'+c+'"></span><span class="legend-text">'+l+'</span></div>';
+    });
+    legendEl.innerHTML = legendHtml;
+  }
+})();
+</script>
+</body>
+</html>`;
+
+  const handleMessage = useCallback((event: WebViewMessageEvent) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === 'nodeClick' && onNodeClick) {
+        const clickedNode = nodes.find((n) => String(n.id) === String(data.id));
+        if (clickedNode) onNodeClick(clickedNode);
+      }
+    } catch (e) {}
+  }, [nodes, onNodeClick]);
+
+  return (
+    <View style={styles.container}>
+      <WebView
+        originWhitelist={['*']}
+        source={{ html }}
+        style={[styles.webview, { backgroundColor: colors.background }]}
+        onMessage={handleMessage}
+        scrollEnabled={false}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        javaScriptEnabled
+        domStorageEnabled
+        allowFileAccess
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  webview: { flex: 1 },
+});
+
+export default MobileKnowledgeGraphView;

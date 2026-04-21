@@ -5,20 +5,22 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   Pressable,
   ActivityIndicator,
   Alert,
   Platform,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { spacing } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
-import { NetworkIcon, SproutIcon, BrainIcon, WorkflowIcon, TagIcon, LayersIcon } from '../../components/icons';
+import { NetworkIcon, SproutIcon, BrainIcon, WorkflowIcon, TagIcon, LayersIcon, CloseIcon } from '../../components/icons';
 import { useKnowledgeGraphStore } from '../../stores/knowledgeGraphStore';
 import { useImportTaskStore } from '../../stores/importTaskStore';
 import type { GraphNode } from '../../api/knowledgeGraph';
+import { MobileKnowledgeGraphView } from './components/MobileKnowledgeGraphView';
 
 type SettingsSubPage = null; // 预留
 
@@ -40,6 +42,18 @@ function groupNodesByType(nodes: GraphNode[]): Record<string, GraphNode[]> {
     groups[type].push(node);
   });
   return groups;
+}
+
+const NODE_COLORS: Record<string, string> = {
+  concept: '#10B981',
+  topic: '#8B5CF6',
+  entity: '#06B6D4',
+  fragment: '#4F46E5',
+  tag: '#F59E0B',
+};
+
+function getNodeColor(type: string): string {
+  return NODE_COLORS[type] || '#666666';
 }
 
 function StatCard({ icon, label, value, colors }: { icon: React.ReactNode; label: string; value: number; colors: ReturnType<typeof useTheme> }) {
@@ -256,19 +270,11 @@ export const KnowledgeGraphScreen: React.FC = () => {
     );
   }
 
-  // 正常显示图谱
-  const nodesByType = graphData ? groupNodesByType(graphData.nodes) : {};
-  const nodeTypes = Object.keys(nodesByType);
+  const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
 
-  // 扁平化数据：section header + 节点
-  type ListItem = { type: 'header'; key: string; nodeType: string } | { type: 'node'; key: string; data: GraphNode };
-  const flatData: ListItem[] = [];
-  nodeTypes.forEach((nodeType) => {
-    flatData.push({ type: 'header', key: `header-${nodeType}`, nodeType });
-    nodesByType[nodeType].forEach((node) => {
-      flatData.push({ type: 'node', key: String(node.id), data: node });
-    });
-  });
+  // 正常显示图谱
+  const edges = graphData?.edges || [];
+  const nodesByType = graphData ? groupNodesByType(graphData.nodes) : {};
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -310,11 +316,10 @@ export const KnowledgeGraphScreen: React.FC = () => {
         </View>
       )}
 
-      <FlatList<ListItem>
-        data={flatData}
-        keyExtractor={(item) => item.key}
-        style={styles.scrollContent}
-        ListHeaderComponent={
+      {/* 图谱可视化 */}
+      {graphData && graphData.nodes.length > 0 ? (
+        <View style={styles.graphContainer}>
+          {/* 统计卡片 */}
           <View style={styles.statsRow}>
             <StatCard
               icon={<TagIcon size={20} color={colors.primary} />}
@@ -331,43 +336,65 @@ export const KnowledgeGraphScreen: React.FC = () => {
             <StatCard
               icon={<LayersIcon size={20} color={colors.warning} />}
               label="类型"
-              value={nodeTypes.length}
+              value={Object.keys(nodesByType).length}
               colors={colors}
             />
           </View>
-        }
-        ListEmptyComponent={
-          <View style={styles.graphPlaceholder}>
-            <NetworkIcon size={48} color={colors.textTertiary} strokeWidth={1.5} />
-            <Text style={[styles.placeholderText, { color: colors.text }]}>暂无图谱数据</Text>
-            <Text style={[styles.placeholderSubtext, { color: colors.textSecondary }]}>
-              点击「构建」开始生成知识图谱
-            </Text>
+
+          {/* WebView 力导向图 */}
+          <View style={styles.graphView}>
+            <MobileKnowledgeGraphView
+              nodes={graphData.nodes}
+              edges={edges}
+              onNodeClick={(node) => setSelectedNode(node)}
+            />
           </View>
-        }
-        renderItem={({ item }) => {
-          if (item.type === 'header') {
-            return (
-              <View style={styles.nodeGroupHeader}>
-                <Text style={[styles.nodeGroupTitle, { color: colors.text }]}>
-                  {typeLabel(item.nodeType)}（{nodesByType[item.nodeType]?.length || 0}）
-                </Text>
-              </View>
-            );
-          }
-          const node = item.data;
-          return (
-            <View style={[styles.nodeItem, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.nodeName, { color: colors.text }]}>{node.name}</Text>
-              {node.description ? (
-                <Text style={[styles.nodeDesc, { color: colors.textSecondary }]} numberOfLines={2}>
-                  {node.description}
-                </Text>
-              ) : null}
+        </View>
+      ) : (
+        <View style={styles.graphPlaceholder}>
+          <NetworkIcon size={48} color={colors.textTertiary} strokeWidth={1.5} />
+          <Text style={[styles.placeholderText, { color: colors.text }]}>暂无图谱数据</Text>
+          <Text style={[styles.placeholderSubtext, { color: colors.textSecondary }]}>
+            点击「构建」开始生成知识图谱
+          </Text>
+        </View>
+      )}
+
+      {/* 节点详情弹窗 */}
+      <Modal
+        visible={selectedNode !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectedNode(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.backgroundSecondary }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>节点详情</Text>
+              <Pressable onPress={() => setSelectedNode(null)} style={styles.modalClose}>
+                <CloseIcon size={20} color={colors.textSecondary} />
+              </Pressable>
             </View>
-          );
-        }}
-      />
+            {selectedNode && (
+              <ScrollView style={styles.modalScroll}>
+                <View style={[styles.modalBadge, { backgroundColor: getNodeColor(selectedNode.node_type) + '20' }]}>
+                  <View style={[styles.modalBadgeDot, { backgroundColor: getNodeColor(selectedNode.node_type) }]} />
+                  <Text style={[styles.modalBadgeText, { color: getNodeColor(selectedNode.node_type) }]}>
+                    {typeLabel(selectedNode.node_type)}
+                  </Text>
+                </View>
+                <Text style={[styles.modalName, { color: colors.text }]}>{selectedNode.name}</Text>
+                {selectedNode.description && (
+                  <View style={styles.modalDescSection}>
+                    <Text style={[styles.modalSectionTitle, { color: colors.text }]}>描述</Text>
+                    <Text style={[styles.modalDesc, { color: colors.textSecondary }]}>{selectedNode.description}</Text>
+                  </View>
+                )}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -413,10 +440,7 @@ const styles = StyleSheet.create({
   },
   actionButtonTextDisabled: {
   },
-  clearButton: {
-  },
   emptyState: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.xl,
@@ -576,9 +600,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: spacing.xs,
   },
-  scrollContent: {
-    paddingBottom: spacing.xl,
-  },
   statsRow: {
     flexDirection: 'row',
     paddingHorizontal: spacing.md,
@@ -600,27 +621,83 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
-  nodeGroupHeader: {
-    paddingHorizontal: spacing.md,
+  graphContainer: {
+    flex: 1,
+  },
+  graphView: {
+    flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '60%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
-    paddingBottom: spacing.xs,
-  },
-  nodeGroupTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  nodeItem: {
-    padding: spacing.md,
+    paddingBottom: spacing.sm,
     borderBottomWidth: 1,
   },
-  nodeName: {
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  modalClose: {
+    padding: spacing.xs,
+  },
+  modalScroll: {
+    padding: spacing.lg,
+  },
+  modalBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+    marginBottom: spacing.sm,
+  },
+  modalBadgeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  modalBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  modalName: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: spacing.md,
+  },
+  modalDescSection: {
+    marginBottom: spacing.md,
+  },
+  modalSectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    marginBottom: 2,
+    marginBottom: spacing.xs,
   },
-  nodeDesc: {
-    fontSize: 13,
-    lineHeight: 20,
+  modalDesc: {
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  modalSourceSection: {
+    marginBottom: spacing.md,
+  },
+  modalSource: {
+    fontSize: 14,
+    lineHeight: 22,
   },
 });
 
