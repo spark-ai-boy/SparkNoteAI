@@ -1,6 +1,6 @@
 // AI 助手（手机端）
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -12,13 +12,25 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { spacing, typography } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
 import { LogoIcon, SendIcon } from '../../components/icons';
 import { aiAssistantApi, type ChatMessage as ApiChatMessage } from '../../api/aiAssistant';
 import { ChatBubble } from './components/ChatBubble';
+
+type MobileNotesStackParamList = {
+  NotesHome: undefined;
+  AIAgent: undefined;
+  KnowledgeGraph: undefined;
+  Settings: undefined;
+  Tasks: undefined;
+  NoteDetail: { noteId: number };
+  Import: { url?: string };
+};
+type NavProp = NativeStackNavigationProp<MobileNotesStackParamList, 'AIAgent'>;
 
 interface Message {
   id: string;
@@ -28,6 +40,7 @@ interface Message {
 }
 
 export const AIAgentScreen: React.FC = () => {
+  const navigation = useNavigation<NavProp>();
   const colors = useTheme();
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -42,6 +55,21 @@ export const AIAgentScreen: React.FC = () => {
   useEffect(() => {
     fetchConfig();
   }, []);
+
+  // 动态设置导航栏标题（自定义组件实现模型名+灰色供应商）
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: () => {
+        const modelName = config?.model || 'AI 助手';
+        const providerName = config?.provider ? ` · ${config.provider}` : '';
+        return (
+          <Text style={{ fontSize: 13, color: colors.textSecondary, fontWeight: '500' }}>
+            {modelName}{providerName}
+          </Text>
+        );
+      },
+    });
+  }, [navigation, config]);
 
   useEffect(() => {
     flatListRef.current?.scrollToEnd({ animated: true });
@@ -62,8 +90,9 @@ export const AIAgentScreen: React.FC = () => {
     const trimmed = query.trim();
     if (!trimmed || isTyping) return;
 
+    const id = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const userMsg: Message = {
-      id: Date.now().toString(),
+      id,
       role: 'user',
       content: trimmed,
       timestamp: new Date(),
@@ -87,7 +116,7 @@ export const AIAgentScreen: React.FC = () => {
       },
       () => {
         const assistantMsg: Message = {
-          id: (Date.now() + 1).toString(),
+          id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           role: 'assistant',
           content: streamingContentRef.current,
           timestamp: new Date(),
@@ -99,7 +128,7 @@ export const AIAgentScreen: React.FC = () => {
       },
       (error) => {
         const errorMsg: Message = {
-          id: (Date.now() + 1).toString(),
+          id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           role: 'assistant',
           content: `抱歉，出现了错误：${error}`,
           timestamp: new Date(),
@@ -121,35 +150,16 @@ export const AIAgentScreen: React.FC = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingCenter}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
-  const modelName = config?.model || 'AI 助手';
-  const providerName = config?.provider ? ` · ${config.provider}` : '';
-
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <View style={styles.headerCenter}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>AI 助手</Text>
-          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-            {modelName}{providerName}
-          </Text>
-        </View>
-        {messages.length > 0 && (
-          <Pressable onPress={handleClear}>
-            <Text style={[styles.clearButtonText, { color: colors.textSecondary }]}>清空</Text>
-          </Pressable>
-        )}
-        {messages.length === 0 && <View style={{ width: 32 }} />}
-      </View>
-
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -193,7 +203,7 @@ export const AIAgentScreen: React.FC = () => {
         )}
 
         {/* Input */}
-        <View style={[styles.inputContainer, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
+        <View style={[styles.inputContainer, { backgroundColor: colors.background }]}>
           <TextInput
             style={[styles.input, { backgroundColor: colors.backgroundSecondary, color: colors.text }]}
             value={query}
@@ -206,6 +216,11 @@ export const AIAgentScreen: React.FC = () => {
             onSubmitEditing={handleSend}
             blurOnSubmit
           />
+          {messages.length > 0 && (
+            <Pressable onPress={handleClear} style={[styles.clearButton, { marginRight: spacing.xs }]}>
+              <Text style={[styles.clearButtonText, { color: colors.textTertiary }]}>清空</Text>
+            </Pressable>
+          )}
           <Pressable
             style={[
               styles.sendButton,
@@ -217,37 +232,14 @@ export const AIAgentScreen: React.FC = () => {
             <SendIcon size={18} color={query.trim() ? colors.primaryForeground : colors.background} />
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-  },
-  headerSubtitle: {
-    fontSize: 11,
-    marginTop: 2,
-  },
-  clearButtonText: {
-    fontSize: 14,
   },
   keyboardView: {
     flex: 1,
@@ -292,9 +284,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderTopWidth: 1,
-    gap: spacing.sm,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
+    gap: spacing.xs,
   },
   input: {
     flex: 1,
@@ -311,6 +303,13 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  clearButton: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  clearButtonText: {
+    fontSize: 14,
   },
   loadingCenter: {
     flex: 1,

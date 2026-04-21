@@ -1,6 +1,7 @@
 // AI 助手 API 客户端 - 使用场景配置
 
 import client, { getAuthToken } from './client';
+import { Platform } from 'react-native';
 
 // 聊天消息类型
 export interface ChatMessage {
@@ -27,85 +28,147 @@ export const chatWithAIAssistant = async (
   onError: (error: string) => void
 ): Promise<AbortController> => {
   const controller = new AbortController();
-
   const token = await getAuthToken();
+  const baseURL = client.defaults.baseURL || '';
 
-  try {
-    const response = await fetch(`${client.defaults.baseURL}/features/ai_assistant/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token || ''}`,
-      },
-      body: JSON.stringify({
-        messages,
-        stream: true,
-      }),
-      signal: controller.signal,
-    });
+  // Web 端使用 fetch + ReadableStream
+  if (Platform.OS === 'web') {
+    try {
+      const response = await fetch(`${baseURL}/features/ai_assistant/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token || ''}`,
+        },
+        body: JSON.stringify({ messages, stream: true }),
+        signal: controller.signal,
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      onError(errorText || '请求失败');
-      return controller;
-    }
+      if (!response.ok) {
+        const errorText = await response.text();
+        onError(errorText || '请求失败');
+        return controller;
+      }
 
-    const reader = response.body?.getReader();
-    if (!reader) {
-      onError('Response body is null');
-      return controller;
-    }
+      const reader = response.body?.getReader();
+      if (!reader) {
+        onError('Response body is null');
+        return controller;
+      }
 
-    const decoder = new TextDecoder();
-    let buffer = '';
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-    const pump = async () => {
-      try {
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) {
-            onComplete();
-            break;
-          }
-
-          buffer += decoder.decode(value, { stream: true });
-
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6);
-              if (data === '[DONE]') {
-                onComplete();
-                return;
-              }
-              try {
-                const parsed = JSON.parse(data);
-                if (parsed.content) {
-                  onChunk(parsed.content);
-                }
-                if (parsed.error) {
-                  onError(parsed.error);
+      const pump = async () => {
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) {
+              onComplete();
+              break;
+            }
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                if (data === '[DONE]') {
+                  onComplete();
                   return;
                 }
-              } catch (e) {
-                console.error('Parse error:', e);
+                try {
+                  const parsed = JSON.parse(data);
+                  if (parsed.content) onChunk(parsed.content);
+                  if (parsed.error) { onError(parsed.error); return; }
+                } catch (e) {
+                  console.error('Parse error:', e);
+                }
               }
             }
           }
+        } catch (error: any) {
+          if (error.name !== 'AbortError') {
+            onError(error.message);
+          }
         }
-      } catch (error) {
-        if ((error as any).name !== 'AbortError') {
-          onError((error as any).message);
+      };
+      pump();
+    } catch (error: any) {
+      onError(error.message || '网络请求失败');
+    }
+    return controller;
+  }
+
+  // 移动端使用 XMLHttpRequest（React Native 的 fetch 不支持 response.body 流式读取）
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', `${baseURL}/features/ai_assistant/chat`);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('Authorization', `Bearer ${token || ''}`);
+  xhr.responseType = 'text';
+
+  let lastProgress = 0;
+  let decoder = '';
+  let completed = false;
+
+  const safeOnComplete = () => {
+    if (completed) return;
+    completed = true;
+    onComplete();
+  };
+
+  xhr.onprogress = (event) => {
+    // 读取已接收的文本
+    const text = xhr.responseText;
+    const newContent = text.slice(lastProgress);
+    lastProgress = text.length;
+
+    decoder += newContent;
+    const lines = decoder.split('\n');
+    decoder = lines.pop() || '';
+
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6);
+        if (data === '[DONE]') {
+          safeOnComplete();
+          return;
+        }
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.content) onChunk(parsed.content);
+          if (parsed.error) { onError(parsed.error); return; }
+        } catch (e) {
+          // 忽略解析错误（可能是分段传输中的不完整 JSON）
         }
       }
-    };
+    }
+  };
 
-    pump();
-  } catch (error: any) {
-    onError(error.message || '网络请求失败');
-  }
+  xhr.onload = () => {
+    if (xhr.status >= 400) {
+      onError(xhr.responseText || '请求失败');
+    } else {
+      safeOnComplete();
+    }
+  };
+
+  xhr.onerror = () => {
+    onError('网络请求失败');
+  };
+
+  xhr.onabort = () => {
+    // 静默取消
+  };
+
+  xhr.send(JSON.stringify({ messages, stream: true }));
+
+  // 重写 abort 方法以取消 xhr
+  const originalAbort = controller.abort.bind(controller);
+  controller.abort = () => {
+    originalAbort();
+    xhr.abort();
+  };
 
   return controller;
 };

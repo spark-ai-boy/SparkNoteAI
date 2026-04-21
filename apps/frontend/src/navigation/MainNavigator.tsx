@@ -56,7 +56,7 @@ const MobileNotesStack = createNativeStackNavigator<{
   Settings: undefined;
   Tasks: undefined;
   NoteDetail: { noteId: number };
-  Import: undefined;
+  Import: { url?: string };
 }>();
 
 export const MobileNotesStackScreen: React.FC = () => {
@@ -112,12 +112,30 @@ export const MobileNotesStackScreen: React.FC = () => {
       <MobileNotesStack.Screen
         name="AIAgent"
         component={AIAgentScreen}
-        options={{ title: 'AI 助手' }}
+        options={({ navigation }) => ({
+          title: '',
+          headerStyle: { backgroundColor: colors.background },
+          headerShadowVisible: false,
+          headerLeft: () => (
+            <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
+              <ChevronLeftIcon size={22} color={colors.primary} />
+            </TouchableOpacity>
+          ),
+        })}
       />
       <MobileNotesStack.Screen
         name="KnowledgeGraph"
         component={KnowledgeGraphScreen}
-        options={{ title: '知识图谱' }}
+        options={({ navigation }) => ({
+          title: '',
+          headerStyle: { backgroundColor: colors.background },
+          headerShadowVisible: false,
+          headerLeft: () => (
+            <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
+              <ChevronLeftIcon size={22} color={colors.primary} />
+            </TouchableOpacity>
+          ),
+        })}
       />
       <MobileNotesStack.Screen
         name="Settings"
@@ -127,7 +145,16 @@ export const MobileNotesStackScreen: React.FC = () => {
       <MobileNotesStack.Screen
         name="Tasks"
         component={MobileTasksScreen}
-        options={{ title: '后台任务' }}
+        options={({ navigation }) => ({
+          title: '',
+          headerStyle: { backgroundColor: colors.background },
+          headerShadowVisible: false,
+          headerLeft: () => (
+            <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
+              <ChevronLeftIcon size={22} color={colors.primary} />
+            </TouchableOpacity>
+          ),
+        })}
       />
     </MobileNotesStack.Navigator>
   );
