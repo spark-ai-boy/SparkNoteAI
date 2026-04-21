@@ -277,15 +277,26 @@ export const NoteDetailScreen: React.FC = () => {
     if (result.canceled || !result.assets || result.assets.length === 0) return;
 
     const asset = result.assets[0];
-    // asset.uri 格式: file:///var/.../filename.jpg
-    const uriParts = asset.uri.split('/');
-    const fileName = uriParts[uriParts.length - 1] || `image_${Date.now()}.jpg`;
+    // asset.uri 格式: file:///var/.../filename.jpg，需要去掉 file:// 前缀
+    const cleanUri = asset.uri.replace(/^file:\/\//, '');
+    // expo-image-picker 设置了 quality: 0.8，原始 .heic 已被转为 JPEG
+    // 使用 mimeType 推导正确的扩展名
+    const mimeTypeToExt: Record<string, string> = {
+      'image/jpeg': '.jpg',
+      'image/jpg': '.jpg',
+      'image/png': '.png',
+      'image/gif': '.gif',
+      'image/webp': '.webp',
+    };
+    const ext = mimeTypeToExt[asset.mimeType || ''] || '.jpg';
+    const baseName = asset.fileName ? asset.fileName.replace(/\.[^.]+$/, '') : `image_${Date.now()}`;
+    const fileName = `${baseName}${ext}`;
 
     try {
       useToastStore.getState().showInfo('正在上传图片...');
       const urls = await uploadImageMobile([{
-        uri: asset.uri,
-        name: fileName,
+        uri: cleanUri,
+        fileName: fileName,
         type: 'image/jpeg',
       }]);
 
@@ -304,7 +315,8 @@ export const NoteDetailScreen: React.FC = () => {
           input?.setSelection?.(start + markdownImage.length, start + markdownImage.length);
         }, 50);
       }
-    } catch {
+    } catch (error) {
+      console.error('[NoteDetailScreen] 图片上传失败:', error);
       useToastStore.getState().showError('图片上传失败');
     }
   }, [editContent, cursorPosition, baseUrl]);
@@ -565,9 +577,6 @@ export const NoteDetailScreen: React.FC = () => {
               })}
             </View>
           )}
-
-          {/* 分隔线 */}
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
           {/* Markdown 内容 */}
           {note.content ? (
