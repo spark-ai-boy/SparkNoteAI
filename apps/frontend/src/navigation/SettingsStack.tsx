@@ -8,6 +8,7 @@ import { useTheme } from '../hooks/useTheme';
 import { SettingsIcon, ChevronLeftIcon } from '../components/icons';
 import { SettingsScreen } from '../screens/mobile/SettingsScreen';
 import { LLMConfigScreen } from '../screens/mobile/LLMConfigScreen';
+import { LLMConfigCreateScreen } from '../screens/mobile/LLMConfigCreateScreen';
 import { InterfaceSettingsScreen } from '../screens/mobile/InterfaceSettingsScreen';
 import { PrivacySecurityScreen } from '../screens/mobile/PrivacySecurityScreen';
 import { AccountSettingsScreen } from '../screens/mobile/AccountSettingsScreen';
@@ -31,6 +32,7 @@ export type SettingsStackParamList = {
   InterfaceSettings: undefined;
   NotificationSettings: undefined;
   LLMConfig: undefined;
+  LLMConfigCreate: undefined;
   ImageStorage: undefined;
   DataManagement: undefined;
   NotesConfig: undefined;
@@ -74,6 +76,7 @@ export const SettingsStack: React.FC = () => {
     <Stack.Screen name="InterfaceSettings" component={InterfaceSettingsScreen} options={{ title: '界面设置' }} />
     <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={{ title: '通知设置' }} />
     <Stack.Screen name="LLMConfig" component={LLMConfigScreen} options={{ title: '大模型配置' }} />
+    <Stack.Screen name="LLMConfigCreate" component={LLMConfigCreateScreen} options={{ title: '添加配置' }} />
     <Stack.Screen name="ImageStorage" component={LLMConfigScreen} options={{ title: '图片存储' }} />
     <Stack.Screen name="DataManagement" component={DataManagementScreen} options={{ title: '数据管理' }} />
     <Stack.Screen name="NotesConfig" component={FeaturePlaceholderScreen} options={{ title: '笔记管理' }} />
