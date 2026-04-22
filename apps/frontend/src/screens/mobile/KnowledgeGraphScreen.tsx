@@ -1,6 +1,6 @@
 // 知识图谱页面（手机端）
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -134,6 +134,24 @@ export const KnowledgeGraphScreen: React.FC = () => {
   const hasLLMConfig = status?.has_llm_config;
   const needsBuildWithData = status && status.has_llm_config && !hasData && !isBuilding;
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', paddingRight: 8 }}>
+          <Pressable
+            style={[{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, opacity: isFullBuildInProgress ? 0.6 : 1 }]}
+            onPress={handleBuildGraph}
+            disabled={isFullBuildInProgress}
+          >
+            <Text style={{ fontSize: 13, fontWeight: '500', color: colors.primary }}>
+              {isFullBuildInProgress ? '构建中' : (hasData ? '重新构建' : '构建')}
+            </Text>
+          </Pressable>
+        </View>
+      ),
+    });
+  }, [navigation, colors.primary, colors.border, isFullBuildInProgress, hasData]);
+
   const handleBuildGraph = () => {
     if (isFullBuildInProgress) {
       setShowBuildInProgressAlert(true);
@@ -164,10 +182,6 @@ export const KnowledgeGraphScreen: React.FC = () => {
   if (needsLLMConfig) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.title, { color: colors.text }]}>知识图谱</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>基于大模型自动构建的知识网络</Text>
-        </View>
         <View style={styles.emptyState}>
           <View style={styles.emptyIcon}>
             <BrainIcon size={64} color={colors.textSecondary} strokeWidth={1.5} />
@@ -195,10 +209,6 @@ export const KnowledgeGraphScreen: React.FC = () => {
 
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.title, { color: colors.text }]}>知识图谱</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>正在构建中...</Text>
-        </View>
         <View style={styles.buildingState}>
           <View style={[styles.buildingIconContainer, { backgroundColor: colors.primary + '10' }]}>
             <NetworkIcon size={80} color={colors.primary} strokeWidth={1} />
@@ -228,10 +238,6 @@ export const KnowledgeGraphScreen: React.FC = () => {
   if (needsBuild || needsBuildWithData) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.title, { color: colors.text }]}>知识图谱</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>基于大模型自动构建的知识网络</Text>
-        </View>
         <View style={styles.emptyState}>
           <View style={styles.emptyIcon}>
             <SproutIcon size={64} color={colors.textSecondary} strokeWidth={1.5} />
@@ -272,23 +278,11 @@ export const KnowledgeGraphScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <View style={styles.headerLeft}>
-          <Text style={[styles.title, { color: colors.text }]}>知识图谱</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            {status?.node_count || 0} 个概念 · {status?.edge_count || 0} 个关系
-          </Text>
-        </View>
-        <View style={styles.headerActions}>
-          <Pressable
-            style={[styles.actionButton, isFullBuildInProgress && styles.actionButtonDisabled]}
-            onPress={handleBuildGraph}
-          >
-            <Text style={[styles.actionButtonText, isFullBuildInProgress && styles.actionButtonTextDisabled]}>
-              {isFullBuildInProgress ? '构建中' : (hasData ? '重新构建' : '构建')}
-            </Text>
-          </Pressable>
-        </View>
+      {/* 状态信息 */}
+      <View style={styles.statusBar}>
+        <Text style={[styles.statusText, { color: colors.textSecondary }]}>
+          {status?.node_count || 0} 个概念 · {status?.edge_count || 0} 个关系
+        </Text>
       </View>
 
       {/* 错误提示 */}
@@ -360,41 +354,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  statusBar: {
     paddingHorizontal: spacing.lg,
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  subtitle: {
-    fontSize: 13,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  actionButton: {
-    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: 8,
-    borderWidth: 1,
   },
-  actionButtonDisabled: {
-    opacity: 0.6,
-  },
-  actionButtonText: {
+  statusText: {
     fontSize: 13,
-    fontWeight: '500',
-  },
-  actionButtonTextDisabled: {
   },
   emptyState: {
     justifyContent: 'center',

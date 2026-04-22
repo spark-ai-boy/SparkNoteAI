@@ -11,7 +11,6 @@ import {
   Pressable,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -247,10 +246,8 @@ export const SettingsScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* iOS Large Title */}
-        <Text style={[styles.title, { color: colors.text }]}>设置</Text>
 
         {sections.map((section: SettingsSection) => (
           <View key={section.title} style={styles.sectionGroup}>
@@ -267,7 +264,7 @@ export const SettingsScreen: React.FC = () => {
           </View>
         ))}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -275,13 +272,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: {
     paddingBottom: spacing.xl,
-  },
-  title: {
-    fontSize: 34,
-    fontWeight: '700',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
   },
   sectionGroup: {
     marginTop: spacing.lg,

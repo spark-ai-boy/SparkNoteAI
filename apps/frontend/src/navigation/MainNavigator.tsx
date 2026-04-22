@@ -69,7 +69,6 @@ export const MobileNotesStackScreen: React.FC = () => {
       screenOptions={{
         headerTintColor: colors.primary,
         headerTitleStyle: { fontSize: 17, fontWeight: '600' },
-        headerShadowVisible: false,
         animation: 'slide_from_right',
         headerBackTitleVisible: false,
       } as any}
@@ -80,16 +79,14 @@ export const MobileNotesStackScreen: React.FC = () => {
         options={{
           title: 'SparkNote AI',
           headerStyle: { backgroundColor: colors.background },
-          headerShadowVisible: false,
         }}
       />
       <MobileNotesStack.Screen
         name="NoteDetail"
         component={NoteDetailScreen}
         options={({ navigation }) => ({
-          title: '',
+          title: '笔记详情',
           headerStyle: { backgroundColor: colors.background },
-          headerShadowVisible: false,
           headerLeft: () => (
             <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
               <ChevronLeftIcon size={22} color={colors.primary} />
@@ -101,9 +98,8 @@ export const MobileNotesStackScreen: React.FC = () => {
         name="Import"
         component={ImportScreen}
         options={({ navigation }) => ({
-          title: '',
+          title: '导入笔记',
           headerStyle: { backgroundColor: colors.background },
-          headerShadowVisible: false,
           headerLeft: () => (
             <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
               <ChevronLeftIcon size={22} color={colors.primary} />
@@ -115,9 +111,8 @@ export const MobileNotesStackScreen: React.FC = () => {
         name="AIAgent"
         component={AIAgentScreen}
         options={({ navigation }) => ({
-          title: '',
+          title: 'AI 助手',
           headerStyle: { backgroundColor: colors.background },
-          headerShadowVisible: false,
           headerLeft: () => (
             <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
               <ChevronLeftIcon size={22} color={colors.primary} />
@@ -129,9 +124,8 @@ export const MobileNotesStackScreen: React.FC = () => {
         name="KnowledgeGraph"
         component={KnowledgeGraphScreen}
         options={({ navigation }) => ({
-          title: '',
+          title: '知识图谱',
           headerStyle: { backgroundColor: colors.background },
-          headerShadowVisible: false,
           headerLeft: () => (
             <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
               <ChevronLeftIcon size={22} color={colors.primary} />
@@ -150,7 +144,6 @@ export const MobileNotesStackScreen: React.FC = () => {
         options={({ navigation }) => ({
           title: '节点详情',
           headerStyle: { backgroundColor: colors.background },
-          headerShadowVisible: false,
           headerLeft: () => (
             <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
               <ChevronLeftIcon size={22} color={colors.primary} />
@@ -162,9 +155,8 @@ export const MobileNotesStackScreen: React.FC = () => {
         name="Tasks"
         component={MobileTasksScreen}
         options={({ navigation }) => ({
-          title: '',
+          title: '后台任务',
           headerStyle: { backgroundColor: colors.background },
-          headerShadowVisible: false,
           headerLeft: () => (
             <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
               <ChevronLeftIcon size={22} color={colors.primary} />

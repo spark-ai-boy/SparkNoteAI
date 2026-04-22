@@ -1,12 +1,11 @@
 // 设置栈导航 — 启用原生 iOS Header
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { spacing } from '../theme';
 import { useTheme } from '../hooks/useTheme';
-import { SettingsIcon } from '../components/icons';
+import { SettingsIcon, ChevronLeftIcon } from '../components/icons';
 import { SettingsScreen } from '../screens/mobile/SettingsScreen';
 import { LLMConfigScreen } from '../screens/mobile/LLMConfigScreen';
 import { InterfaceSettingsScreen } from '../screens/mobile/InterfaceSettingsScreen';
@@ -43,19 +42,30 @@ export type SettingsStackParamList = {
 
 const Stack = createNativeStackNavigator<SettingsStackParamList>();
 
-export const SettingsStack: React.FC = () => (
+export const SettingsStack: React.FC = () => {
+  const colors = useTheme();
+
+  return (
   <Stack.Navigator
     screenOptions={{
-      headerTintColor: '#007AFF',
+      headerTintColor: colors.primary,
       headerTitleStyle: { fontSize: 17, fontWeight: '600' },
       headerBackTitle: '返回',
+      headerStyle: { backgroundColor: colors.background },
       animation: 'slide_from_right',
     }}
   >
     <Stack.Screen
       name="SettingsList"
       component={SettingsScreen}
-      options={{ headerShown: false }}
+      options={({ navigation }) => ({
+        title: '设置',
+        headerLeft: () => (
+          <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4, marginRight: 0 }}>
+            <ChevronLeftIcon size={22} color={colors.primary} />
+          </TouchableOpacity>
+        ),
+      })}
     />
     <Stack.Screen name="AccountSettings" component={AccountSettingsScreen} options={{ title: '账号设置' }} />
     <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ title: '修改密码' }} />
@@ -72,7 +82,8 @@ export const SettingsStack: React.FC = () => (
     <Stack.Screen name="About" component={AboutScreen} options={{ title: '关于' }} />
     <Stack.Screen name="Tasks" component={TasksScreen} options={{ title: '后台任务' }} />
   </Stack.Navigator>
-);
+  );
+};
 
 // 场景配置占位页面
 type PlaceholderScreenProps = {
@@ -91,7 +102,7 @@ const FeaturePlaceholderScreen: React.FC<PlaceholderScreenProps> = ({ route, nav
   const colors = useTheme();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.centerContent}>
         <SettingsIcon size={48} color={colors.textTertiary} />
         <Text style={[styles.placeholderTitle, { color: colors.text }]}>{info.title}</Text>
@@ -100,7 +111,7 @@ const FeaturePlaceholderScreen: React.FC<PlaceholderScreenProps> = ({ route, nav
           {'\n\n'}开发中，敬请期待
         </Text>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
