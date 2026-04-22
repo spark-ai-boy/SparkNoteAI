@@ -25,6 +25,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.sparknoteai.app",
+      "scheme": "sparknoteai",
       "intentFilters": [
         {
           "action": "SEND",

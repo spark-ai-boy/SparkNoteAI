@@ -6,13 +6,11 @@ import {
   Text,
   StyleSheet,
   Pressable,
-  ActivityIndicator,
   Alert,
   Platform,
   Modal,
   ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { spacing } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
@@ -164,10 +162,12 @@ export const KnowledgeGraphScreen: React.FC = () => {
     }
   };
 
+  const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+
   // 未配置 LLM
   if (needsLLMConfig) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <Text style={[styles.title, { color: colors.text }]}>知识图谱</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>基于大模型自动构建的知识网络</Text>
@@ -188,7 +188,7 @@ export const KnowledgeGraphScreen: React.FC = () => {
             <Text style={[styles.configButtonText, { color: colors.primaryForeground }]}>去配置大模型</Text>
           </Pressable>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -198,7 +198,7 @@ export const KnowledgeGraphScreen: React.FC = () => {
     const message = (currentBuildTask as any)?.progress_message || '正在处理...';
 
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <Text style={[styles.title, { color: colors.text }]}>知识图谱</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>正在构建中...</Text>
@@ -224,14 +224,14 @@ export const KnowledgeGraphScreen: React.FC = () => {
             构建完成后将自动显示图谱，您可以稍后查看
           </Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   // 需要构建
   if (needsBuild || needsBuildWithData) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <Text style={[styles.title, { color: colors.text }]}>知识图谱</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>基于大模型自动构建的知识网络</Text>
@@ -266,18 +266,16 @@ export const KnowledgeGraphScreen: React.FC = () => {
             <Text style={[styles.buildButtonText, { color: colors.primaryForeground }]}>开始构建</Text>
           </Pressable>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
-
-  const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
 
   // 正常显示图谱
   const edges = graphData?.edges || [];
   const nodesByType = graphData ? groupNodesByType(graphData.nodes) : {};
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <View style={styles.headerLeft}>
           <Text style={[styles.title, { color: colors.text }]}>知识图谱</Text>
@@ -395,7 +393,7 @@ export const KnowledgeGraphScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -407,8 +405,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing.lg,
-    borderBottomWidth: 1,
+    paddingHorizontal: spacing.lg,
   },
   headerLeft: {
     flex: 1,

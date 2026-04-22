@@ -14,7 +14,7 @@
     "export": "expo export"
   },
   "dependencies": {
-    "@react-native-async-storage/async-storage": "^3.0.2",
+    "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-native-menu/menu": "^2.0.0",
     "@react-navigation/bottom-tabs": "^7.15.9",
     "@react-navigation/native": "^7.2.2",
