@@ -17,14 +17,14 @@ import { SettingsStackParamList } from '../../navigation/SettingsStack';
 import { spacing } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useLLMConfigStore } from '../../stores/llmConfigStore';
-import { PlusIcon, CheckIcon, TrashIcon, SparklesIcon } from '../../components/icons';
+import { PlusIcon, CheckIcon, TrashIcon, EditIcon } from '../../components/icons';
 
 type NavProp = NativeStackNavigationProp<SettingsStackParamList, 'LLMConfig'>;
 
 export const LLMConfigScreen: React.FC = () => {
   const navigation = useNavigation<NavProp>();
   const colors = useTheme();
-  const { configs, isLoading, fetchConfigs, createConfig, deleteConfig, setDefault, testConnection } = useLLMConfigStore();
+  const { configs, isLoading, fetchConfigs, deleteConfig, setDefault } = useLLMConfigStore();
 
   useEffect(() => {
     fetchConfigs();
@@ -51,20 +51,11 @@ export const LLMConfigScreen: React.FC = () => {
     ]);
   };
 
-  const handleTest = async (configKey: string) => {
-    try {
-      const result = await testConnection(configKey);
-      Alert.alert('测试结果', result.message);
-    } catch (e: any) {
-      Alert.alert('测试失败', e.message || '未知错误');
-    }
-  };
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {configs.length === 0 && !isLoading ? (
         <View style={styles.center}>
-          <SparklesIcon size={48} color={colors.textTertiary} />
+          <EditIcon size={48} color={colors.textTertiary} />
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>暂无配置</Text>
           <Pressable
             style={[styles.createButton, { backgroundColor: colors.primary }]}
@@ -84,7 +75,7 @@ export const LLMConfigScreen: React.FC = () => {
               return (
                 <View key={cfg.config_key}>
                   <View style={styles.configItem}>
-                    <View style={styles.configInfo}>
+                    <Pressable style={styles.configInfo} onPress={() => navigation.navigate('LLMConfigEdit', { configKey: cfg.config_key } as any)}>
                       <Text style={[styles.configName, { color: colors.text }]}>{cfg.name}</Text>
                       <Text style={[styles.configModel, { color: colors.textSecondary }]}>
                         {cfg.provider} · {cfg.config?.model || '未设置'}
@@ -94,15 +85,15 @@ export const LLMConfigScreen: React.FC = () => {
                           <Text style={[styles.defaultBadgeText, { color: colors.primaryForeground }]}>默认</Text>
                         </View>
                       )}
-                    </View>
+                    </Pressable>
                     <View style={styles.configActions}>
                       {!cfg.is_default && (
                         <Pressable style={styles.actionBtn} onPress={() => setDefault(cfg.config_key)}>
                           <CheckIcon size={18} color={colors.success} />
                         </Pressable>
                       )}
-                      <Pressable style={styles.actionBtn} onPress={() => handleTest(cfg.config_key)}>
-                        <SparklesIcon size={18} color={colors.blue} />
+                      <Pressable style={styles.actionBtn} onPress={() => navigation.navigate('LLMConfigEdit', { configKey: cfg.config_key } as any)}>
+                        <EditIcon size={18} color={colors.textSecondary} />
                       </Pressable>
                       <Pressable style={styles.actionBtn} onPress={() => handleDelete(cfg.config_key)}>
                         <TrashIcon size={18} color={colors.error} />
