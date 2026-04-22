@@ -8,10 +8,10 @@ import { useTheme } from '../../hooks/useTheme';
 import { useInterfaceSettingsStore } from '../../stores/interfaceSettingsStore';
 import { SunIcon, MoonIcon, MonitorIcon, CheckIcon } from '../../components/icons';
 
-const THEMES: { id: string; label: string; icon: React.ReactNode }[] = [
-  { id: 'light', label: '浅色', icon: <SunIcon size={20} /> },
-  { id: 'dark', label: '深色', icon: <MoonIcon size={20} /> },
-  { id: 'system', label: '跟随系统', icon: <MonitorIcon size={20} /> },
+const THEMES = (colors: ReturnType<typeof useTheme>): { id: string; label: string; icon: React.ReactNode }[] => [
+  { id: 'light', label: '浅色', icon: <SunIcon size={20} color={colors.textSecondary} /> },
+  { id: 'dark', label: '深色', icon: <MoonIcon size={20} color={colors.textSecondary} /> },
+  { id: 'system', label: '跟随系统', icon: <MonitorIcon size={20} color={colors.textSecondary} /> },
 ];
 
 export const InterfaceSettingsScreen: React.FC = () => {
@@ -22,7 +22,7 @@ export const InterfaceSettingsScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={[styles.card, { backgroundColor: colors.backgroundSecondary }]}>
-          {THEMES.map((t, i) => {
+          {THEMES(colors).map((t, i) => {
             const isLast = i === THEMES.length - 1;
             const isSelected = theme === t.id;
             return (
