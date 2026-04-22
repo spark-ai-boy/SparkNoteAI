@@ -8,17 +8,29 @@ import {
   Pressable,
   Alert,
   Platform,
-  Modal,
-  ScrollView,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { spacing } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
-import { NetworkIcon, SproutIcon, BrainIcon, WorkflowIcon, TagIcon, LayersIcon, CloseIcon } from '../../components/icons';
+import { NetworkIcon, SproutIcon, BrainIcon, WorkflowIcon, TagIcon, LayersIcon } from '../../components/icons';
 import { useKnowledgeGraphStore } from '../../stores/knowledgeGraphStore';
 import { useImportTaskStore } from '../../stores/importTaskStore';
 import type { GraphNode } from '../../api/knowledgeGraph';
 import { MobileKnowledgeGraphView } from './components/MobileKnowledgeGraphView';
+
+type KnowledgeGraphNavParamList = {
+  NotesHome: undefined;
+  NoteDetail: { noteId: number };
+  AIAgent: undefined;
+  KnowledgeGraph: undefined;
+  Settings: undefined;
+  Tasks: undefined;
+  GraphNodeDetail: { nodeId: number; nodeName: string; nodeType: string; nodeDescription?: string };
+};
+
+type KnowledgeGraphNavProp = NativeStackNavigationProp<KnowledgeGraphNavParamList, 'KnowledgeGraph'>;
 
 type SettingsSubPage = null; // 预留
 
@@ -65,6 +77,7 @@ function StatCard({ icon, label, value, colors }: { icon: React.ReactNode; label
 }
 
 export const KnowledgeGraphScreen: React.FC = () => {
+  const navigation = useNavigation<KnowledgeGraphNavProp>();
   const colors = useTheme();
   const {
     status,
@@ -75,7 +88,6 @@ export const KnowledgeGraphScreen: React.FC = () => {
     fetchStatus,
     fetchData,
     startBuild,
-    clearGraph,
   } = useKnowledgeGraphStore();
 
   const tasks = useImportTaskStore((state) => state.tasks);
@@ -147,22 +159,6 @@ export const KnowledgeGraphScreen: React.FC = () => {
       ]);
     }
   };
-
-  const handleClearGraph = () => {
-    if (Platform.OS === 'ios') {
-      Alert.alert('清空知识图谱', '确定要清空知识图谱吗？此操作不可恢复。', [
-        { text: '取消', style: 'cancel' },
-        { text: '清空', style: 'destructive', onPress: () => clearGraph() },
-      ]);
-    } else {
-      Alert.alert('清空知识图谱', '确定要清空知识图谱吗？此操作不可恢复。', [
-        { text: '取消', style: 'cancel' },
-        { text: '确定', onPress: () => clearGraph() },
-      ]);
-    }
-  };
-
-  const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
 
   // 未配置 LLM
   if (needsLLMConfig) {
@@ -292,14 +288,6 @@ export const KnowledgeGraphScreen: React.FC = () => {
               {isFullBuildInProgress ? '构建中' : (hasData ? '重新构建' : '构建')}
             </Text>
           </Pressable>
-          {hasData && (
-            <Pressable
-              style={styles.actionButton}
-              onPress={handleClearGraph}
-            >
-              <Text style={[styles.actionButtonText, { color: colors.error }]}>清空</Text>
-            </Pressable>
-          )}
         </View>
       </View>
 
@@ -344,7 +332,14 @@ export const KnowledgeGraphScreen: React.FC = () => {
             <MobileKnowledgeGraphView
               nodes={graphData.nodes}
               edges={edges}
-              onNodeClick={(node) => setSelectedNode(node)}
+              onNodeClick={(node) => {
+                navigation.navigate('GraphNodeDetail', {
+                  nodeId: node.id,
+                  nodeName: node.name,
+                  nodeType: (node as any).node_type ?? (node as any).type ?? '',
+                  nodeDescription: node.description,
+                });
+              }}
             />
           </View>
         </View>
@@ -357,42 +352,6 @@ export const KnowledgeGraphScreen: React.FC = () => {
           </Text>
         </View>
       )}
-
-      {/* 节点详情弹窗 */}
-      <Modal
-        visible={selectedNode !== null}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setSelectedNode(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.backgroundSecondary }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>节点详情</Text>
-              <Pressable onPress={() => setSelectedNode(null)} style={styles.modalClose}>
-                <CloseIcon size={20} color={colors.textSecondary} />
-              </Pressable>
-            </View>
-            {selectedNode && (
-              <ScrollView style={styles.modalScroll}>
-                <View style={[styles.modalBadge, { backgroundColor: getNodeColor(selectedNode.node_type) + '20' }]}>
-                  <View style={[styles.modalBadgeDot, { backgroundColor: getNodeColor(selectedNode.node_type) }]} />
-                  <Text style={[styles.modalBadgeText, { color: getNodeColor(selectedNode.node_type) }]}>
-                    {typeLabel(selectedNode.node_type)}
-                  </Text>
-                </View>
-                <Text style={[styles.modalName, { color: colors.text }]}>{selectedNode.name}</Text>
-                {selectedNode.description && (
-                  <View style={styles.modalDescSection}>
-                    <Text style={[styles.modalSectionTitle, { color: colors.text }]}>描述</Text>
-                    <Text style={[styles.modalDesc, { color: colors.textSecondary }]}>{selectedNode.description}</Text>
-                  </View>
-                )}
-              </ScrollView>
-            )}
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
@@ -623,78 +582,6 @@ const styles = StyleSheet.create({
   },
   graphView: {
     flex: 1,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContent: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '60%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-  },
-  modalTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  modalClose: {
-    padding: spacing.xs,
-  },
-  modalScroll: {
-    padding: spacing.lg,
-  },
-  modalBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-    marginBottom: spacing.sm,
-  },
-  modalBadgeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  modalBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  modalName: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: spacing.md,
-  },
-  modalDescSection: {
-    marginBottom: spacing.md,
-  },
-  modalSectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: spacing.xs,
-  },
-  modalDesc: {
-    fontSize: 14,
-    lineHeight: 22,
-  },
-  modalSourceSection: {
-    marginBottom: spacing.md,
-  },
-  modalSource: {
-    fontSize: 14,
-    lineHeight: 22,
   },
 });
 

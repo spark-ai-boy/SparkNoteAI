@@ -13,6 +13,7 @@ import {
 } from '../screens/mobile';
 import { AIAgentScreen } from '../screens/mobile/AIAgentScreen';
 import { NoteDetailScreen } from '../screens/mobile/NoteDetailScreen';
+import { GraphNodeDetailScreen } from '../screens/mobile/GraphNodeDetailScreen';
 import { ImportScreen } from '../screens/mobile/ImportScreen';
 import { SettingsStack } from './SettingsStack';
 import {
@@ -57,6 +58,7 @@ const MobileNotesStack = createNativeStackNavigator<{
   Tasks: undefined;
   NoteDetail: { noteId: number };
   Import: { url?: string };
+  GraphNodeDetail: { nodeId: number; nodeName: string; nodeType: string; nodeDescription?: string };
 }>();
 
 export const MobileNotesStackScreen: React.FC = () => {
@@ -141,6 +143,20 @@ export const MobileNotesStackScreen: React.FC = () => {
         name="Settings"
         component={SettingsStack}
         options={{ headerShown: false }}
+      />
+      <MobileNotesStack.Screen
+        name="GraphNodeDetail"
+        component={GraphNodeDetailScreen}
+        options={({ navigation }) => ({
+          title: '节点详情',
+          headerStyle: { backgroundColor: colors.background },
+          headerShadowVisible: false,
+          headerLeft: () => (
+            <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
+              <ChevronLeftIcon size={22} color={colors.primary} />
+            </TouchableOpacity>
+          ),
+        })}
       />
       <MobileNotesStack.Screen
         name="Tasks"

@@ -1,6 +1,6 @@
 // 知识图谱 WebView 力导向图（手机端）
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
@@ -26,6 +26,7 @@ export const MobileKnowledgeGraphView: React.FC<Props> = ({ nodes, edges, onNode
 
   const colorMap: Record<string, string> = {};
   const labelMap: Record<string, string> = {};
+  const activeTypes = new Set<string>();
   Object.entries(NODE_TYPE_CONFIG).forEach(([k, v]) => {
     colorMap[k] = v.color;
     labelMap[k] = v.label;
@@ -34,18 +35,36 @@ export const MobileKnowledgeGraphView: React.FC<Props> = ({ nodes, edges, onNode
   const graphNodes = nodes.map((n) => ({
     id: n.id,
     name: n.name,
-    node_type: n.node_type,
+    node_type: (n as any).node_type ?? (n as any).type ?? 'concept',
     description: n.description || '',
   }));
 
+  graphNodes.forEach((n) => {
+    if (n.node_type) activeTypes.add(n.node_type);
+  });
+
   const graphLinks = edges
-    .filter((e) => e.source_node_id != null && e.target_node_id != null)
+    .filter((e) => {
+      const src = (e as any).source ?? (e as any).source_node_id;
+      const tgt = (e as any).target ?? (e as any).target_node_id;
+      return src != null && tgt != null;
+    })
     .map((e) => ({
-      source: e.source_node_id,
-      target: e.target_node_id,
-      edge_type: e.edge_type || '',
-      description: e.description || '',
+      source: (e as any).source ?? (e as any).source_node_id,
+      target: (e as any).target ?? (e as any).target_node_id,
+      edge_type: (e as any).edge_type ?? (e as any).type ?? '',
+      description: (e as any).description ?? '',
     }));
+
+  const legendHtml = useMemo(() => {
+    let html = '<div class="legend-title">图例</div>';
+    activeTypes.forEach((t) => {
+      const c = colorMap[t] || '#666';
+      const l = labelMap[t] || t;
+      html += `<div class="legend-item"><span class="legend-dot" style="background:${c}"></span><span class="legend-text">${l}</span></div>`;
+    });
+    return html;
+  }, []);
 
   const html = `<!DOCTYPE html>
 <html>
@@ -54,7 +73,7 @@ export const MobileKnowledgeGraphView: React.FC<Props> = ({ nodes, edges, onNode
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;background:#F5F5F7}
+html,body{width:100%;height:100%;overflow:hidden;background:transparent}
 svg{width:100%;height:100%;display:block}
 .link{stroke-opacity:.4}
 .node-label{font-size:9px;font-weight:600;fill:#1D1D1F;pointer-events:none;text-anchor:middle}
@@ -69,7 +88,7 @@ svg{width:100%;height:100%;display:block}
 <body>
 <svg id="graph"></svg>
 <div id="status">正在渲染图谱...</div>
-<div class="legend" id="legend"></div>
+<div class="legend" id="legend">${legendHtml}</div>
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 <script>
 (function(){
@@ -77,7 +96,6 @@ svg{width:100%;height:100%;display:block}
   var COLORS = ${JSON.stringify(colorMap)};
   var LABELS = ${JSON.stringify(labelMap)};
   var statusEl = document.getElementById('status');
-  var legendEl = document.getElementById('legend');
   var vw = window.innerWidth;
   var vh = window.innerHeight;
 
@@ -91,12 +109,13 @@ svg{width:100%;height:100%;display:block}
   waitD3();
 
   function startGraph(){
+    if(!DATA.nodes.length){statusEl.textContent='暂无节点';return}
     statusEl.textContent='渲染中...';
 
-    var nds = (DATA.nodes || []).map(function(n){
+    var nds = DATA.nodes.map(function(n){
       return {id: Number(n.id), name: n.name, node_type: n.node_type, description: n.description||''};
     });
-    var lks = (DATA.links || []).map(function(l){
+    var lks = DATA.links.map(function(l){
       return {source: Number(l.source), target: Number(l.target)};
     });
 
@@ -104,7 +123,6 @@ svg{width:100%;height:100%;display:block}
     var zoom = d3.zoom().scaleExtent([.3,5]).on('zoom',function(e){group.attr('transform',e.transform)});
     svg.call(zoom);
 
-    // 箭头标记
     svg.append('defs').append('marker')
       .attr('id','arrow').attr('viewBox','0 -5 10 10')
       .attr('refX',14).attr('refY',0).attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
@@ -112,13 +130,11 @@ svg{width:100%;height:100%;display:block}
 
     var group = svg.append('g');
 
-    // 画边
     var link = group.selectAll('.link').data(lks).join('line')
       .attr('class','link')
       .attr('stroke','#999').attr('stroke-width',1.5)
       .attr('marker-end','url(#arrow)');
 
-    // 画节点
     var nodeGroup = group.selectAll('.ng').data(nds).join('g')
       .attr('class','ng')
       .call(d3.drag().on('start',dragStart).on('drag',dragMove).on('end',dragEnd));
@@ -131,7 +147,6 @@ svg{width:100%;height:100%;display:block}
         try{window.ReactNativeWebView.postMessage(JSON.stringify({type:'nodeClick',id:d.id,name:d.name,nodeType:d.node_type,description:d.description}));}catch(e){}
       });
 
-    // 画文字标签
     group.selectAll('.lg').data(nds).join('g').attr('class','lg')
       .append('text').attr('class','node-label').attr('dy',18)
       .text(function(d){
@@ -139,7 +154,6 @@ svg{width:100%;height:100%;display:block}
         return t.length>12 ? t.slice(0,11)+'...' : t;
       });
 
-    // 力导向模拟
     var sim = d3.forceSimulation(nds)
       .force('link',d3.forceLink(lks).id(function(d){return d.id}).distance(80).strength(.3))
       .force('charge',d3.forceManyBody().strength(-120))
@@ -160,7 +174,6 @@ svg{width:100%;height:100%;display:block}
     function dragMove(ev,d){d.fx=ev.x;d.fy=ev.y;}
     function dragEnd(ev,d){if(!ev.active)sim.alphaTarget(0);d.fx=null;d.fy=null;}
 
-    // 适配屏幕
     setTimeout(function(){
       try{
         var bbox = group.node().getBBox();
@@ -176,17 +189,6 @@ svg{width:100%;height:100%;display:block}
       }
       statusEl.style.display='none';
     },2000);
-
-    // 图例
-    var typeSet = {};
-    nds.forEach(function(n){ typeSet[n.node_type] = true; });
-    var legendHtml = '<div class="legend-title">图例</div>';
-    Object.keys(typeSet).forEach(function(t){
-      var c = COLORS[t] || '#666';
-      var l = LABELS[t] || t;
-      legendHtml += '<div class="legend-item"><span class="legend-dot" style="background:'+c+'"></span><span class="legend-text">'+l+'</span></div>';
-    });
-    legendEl.innerHTML = legendHtml;
   }
 })();
 </script>
