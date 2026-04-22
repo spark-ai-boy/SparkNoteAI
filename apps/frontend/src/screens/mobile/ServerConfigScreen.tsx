@@ -11,6 +11,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useServerConfigStore } from '../../stores/serverConfigStore';
 import { useAuthStore } from '../../stores/authStore';
 import apiClient from '../../api/client';
+import { ServerIcon, RefreshCwIcon, GlobeIcon, ChevronRightIcon } from '../../components/icons';
 
 type NavProp = NativeStackNavigationProp<SettingsStackParamList, 'ServerConfig'>;
 
@@ -62,25 +63,41 @@ export const ServerConfigScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.content}>
         {/* 服务器信息 */}
         <View style={[styles.card, { backgroundColor: colors.backgroundSecondary }]}>
-          <InfoRow label="服务器地址" value={baseUrl} isLast={versions.length === 0} colors={colors} />
-          {versions.length === 0 && null}
+          <View style={styles.infoHeader}>
+            <ServerIcon size={20} color={colors.textSecondary} />
+            <Text style={[styles.cardTitle, { color: colors.text }]}>服务器信息</Text>
+          </View>
+          <View style={[styles.row, { borderBottomColor: colors.border }]}>
+            <View style={styles.rowLeft}>
+              <GlobeIcon size={18} color={colors.textTertiary} />
+              <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>服务器地址</Text>
+            </View>
+            <Text style={[styles.rowValue, { color: colors.text }]} numberOfLines={1}>{baseUrl}</Text>
+          </View>
+          <View style={styles.row}>
+            <View style={styles.rowLeft}>
+              <Text style={{ fontSize: 16, lineHeight: 18, fontWeight: '600' }}>v</Text>
+              <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>后端版本</Text>
+            </View>
+            <Text style={[styles.rowValue, { color: colors.text }]}>{serverInfo?.version || '未知'}</Text>
+          </View>
         </View>
 
+        {/* 兼容版本 */}
         {versions.length > 0 && (
           <View style={[styles.card, { backgroundColor: colors.backgroundSecondary }]}>
-            <InfoRow label="后端版本" value={serverInfo?.version || '未知'} isLast={true} colors={colors} />
-          </View>
-        )}
-
-        {versions.length > 0 && (
-          <View style={[styles.card, { backgroundColor: colors.backgroundSecondary }]}>
-            <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>兼容客户端版本</Text>
+            <View style={styles.infoHeader}>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>兼容客户端版本</Text>
+            </View>
             {versions.map((v: string, i: number) => {
               const isLast = i === versions.length - 1;
               return (
                 <View key={v}>
                   {!isLast && <View style={[styles.divider, { backgroundColor: colors.border }]} />}
-                  <Text style={[styles.versionText, { color: colors.text }]}>{v}</Text>
+                  <View style={styles.versionRow}>
+                    <View style={[styles.versionDot, { backgroundColor: colors.success }]} />
+                    <Text style={[styles.versionText, { color: colors.text }]}>{v}</Text>
+                  </View>
                 </View>
               );
             })}
@@ -89,48 +106,100 @@ export const ServerConfigScreen: React.FC = () => {
 
         {/* 操作 */}
         <View style={[styles.card, { backgroundColor: colors.backgroundSecondary }]}>
-          <PressableRow title="更换服务器" onPress={() => logout()} isLast={false} colors={colors} />
-          <PressableRow title="重新加载配置" onPress={loadData} isLast={true} colors={colors} />
+          <Pressable style={styles.actionRow} onPress={loadData}>
+            <RefreshCwIcon size={20} color={colors.textSecondary} />
+            <Text style={[styles.actionText, { color: colors.text }]}>重新加载配置</Text>
+            <ChevronRightIcon size={16} color={colors.textTertiary} />
+          </Pressable>
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          <Pressable style={[styles.actionRow, styles.dangerRow]} onPress={() => logout()}>
+            <Text style={[styles.actionText, { color: colors.error }]}>更换服务器</Text>
+            <ChevronRightIcon size={16} color={colors.error} />
+          </Pressable>
         </View>
       </ScrollView>
     </View>
   );
 };
 
-const InfoRow: React.FC<{ label: string; value: string; isLast: boolean; colors: ReturnType<typeof useTheme> }> = ({ label, value, isLast, colors }) => (
-  <View style={{ paddingHorizontal: spacing.md, paddingVertical: spacing.sm }}>
-    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>{label}</Text>
-    <Text style={[styles.infoValue, { color: colors.text }]}>{value}</Text>
-    {!isLast && <View style={[styles.divider, { backgroundColor: colors.border }]} />}
-  </View>
-);
-
-const PressableRow: React.FC<{ title: string; onPress: () => void; isLast: boolean; colors: ReturnType<typeof useTheme> }> = ({ title, onPress, isLast, colors }) => (
-  <View>
-    <Pressable style={styles.actionRow} onPress={onPress}>
-      <Text style={[styles.actionText, { color: colors.text }]}>{title}</Text>
-    </Pressable>
-    {!isLast && <View style={[styles.divider, { backgroundColor: colors.border }]} />}
-  </View>
-);
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: spacing.md, paddingBottom: spacing.xl },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  // 卡片
   card: { borderRadius: 12, overflow: 'hidden', marginBottom: spacing.md },
-  groupLabel: {
-    fontSize: 13,
+
+  // 卡片标题
+  infoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
     paddingBottom: spacing.xs,
   },
-  divider: { height: 0.5, marginLeft: spacing.md },
-  infoLabel: { fontSize: 13, marginBottom: 2 },
-  infoValue: { fontSize: 15, fontWeight: '500' },
-  versionText: { fontSize: 14, paddingVertical: spacing.sm },
-  actionRow: { paddingHorizontal: spacing.md, paddingVertical: spacing.md },
-  actionText: { fontSize: 17 },
+  cardTitle: {
+    fontSize: 13,
+    fontWeight: '400',
+  },
+
+  // 信息行
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 0.5,
+  },
+  rowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  rowLabel: {
+    fontSize: 15,
+  },
+  rowValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    maxWidth: 200,
+  },
+
+  // 版本行
+  divider: { height: 0.5, marginLeft: spacing.md + spacing.xs + 18 },
+  versionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+  },
+  versionDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  versionText: {
+    fontSize: 14,
+  },
+
+  // 操作行
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  dangerRow: {
+    justifyContent: 'center',
+  },
+  actionText: {
+    flex: 1,
+    fontSize: 17,
+  },
 });
 
 export default ServerConfigScreen;
