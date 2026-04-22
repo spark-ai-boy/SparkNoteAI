@@ -18,6 +18,8 @@ import { AboutScreen } from '../screens/mobile/AboutScreen';
 import { ServerConfigScreen } from '../screens/mobile/ServerConfigScreen';
 import { NotificationSettingsScreen } from '../screens/mobile/NotificationSettingsScreen';
 import { DataManagementScreen } from '../screens/mobile/DataManagementScreen';
+import { ImageStorageScreen } from '../screens/mobile/ImageStorageScreen';
+import { ImageStorageFormScreen } from '../screens/mobile/ImageStorageFormScreen';
 
 import {
   NativeStackScreenProps,
@@ -35,6 +37,8 @@ export type SettingsStackParamList = {
   LLMConfigCreate: undefined;
   LLMConfigEdit: { configKey: string };
   ImageStorage: undefined;
+  ImageStorageCreate: undefined;
+  ImageStorageEdit: { configKey: string };
   DataManagement: undefined;
   NotesConfig: undefined;
   KnowledgeGraphConfig: undefined;
@@ -79,7 +83,9 @@ export const SettingsStack: React.FC = () => {
     <Stack.Screen name="LLMConfig" component={LLMConfigScreen} options={{ title: '大模型配置' }} />
     <Stack.Screen name="LLMConfigCreate" component={LLMConfigFormScreen} options={{ title: '添加配置' }} />
     <Stack.Screen name="LLMConfigEdit" component={LLMConfigFormScreen} />
-    <Stack.Screen name="ImageStorage" component={LLMConfigScreen} options={{ title: '图片存储' }} />
+    <Stack.Screen name="ImageStorage" component={ImageStorageScreen} options={{ title: '图片存储' }} />
+    <Stack.Screen name="ImageStorageCreate" component={ImageStorageFormScreen} options={{ title: '添加图床配置' }} />
+    <Stack.Screen name="ImageStorageEdit" component={ImageStorageFormScreen} />
     <Stack.Screen name="DataManagement" component={DataManagementScreen} options={{ title: '数据管理' }} />
     <Stack.Screen name="NotesConfig" component={FeaturePlaceholderScreen} options={{ title: '笔记管理' }} />
     <Stack.Screen name="KnowledgeGraphConfig" component={FeaturePlaceholderScreen} options={{ title: '知识图谱' }} />
