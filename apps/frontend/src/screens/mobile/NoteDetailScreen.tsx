@@ -339,7 +339,7 @@ export const NoteDetailScreen: React.FC = () => {
       borderLeftColor: colors.border,
       paddingLeft: spacing.md,
       paddingVertical: spacing.xs,
-      backgroundColor: '#F0F0F0',
+      backgroundColor: colors.backgroundSecondary,
       marginVertical: spacing.sm,
       borderRadius: 8,
       fontStyle: 'italic',
@@ -390,6 +390,9 @@ export const NoteDetailScreen: React.FC = () => {
       marginTop: spacing.lg,
       marginBottom: spacing.sm,
     },
+    text: {
+      color: colors.text,
+    },
     table: {
       borderWidth: 1,
       borderColor: colors.border,
@@ -410,7 +413,7 @@ export const NoteDetailScreen: React.FC = () => {
       marginVertical: spacing.xs,
       lineHeight: 22,
     },
-  }), [colors.text, colors.primary, colors.border, colors.backgroundSecondary, colors.blue]);
+  }), [colors.text, colors.primary, colors.border, colors.backgroundSecondary, colors.blue, colors.textSecondary]);
 
   // 自定义 renderer：引用内容加斜体，代码块加 macOS 风格标题栏
   const customRenderer = useMemo(() => {

@@ -158,7 +158,7 @@ export const ImportScreen: React.FC = () => {
 
         <View style={styles.inputContainer}>
           <Text style={[styles.label, { color: colors.text }]}>内容链接</Text>
-          <View style={[styles.inputWrapper, { backgroundColor: '#F5F5F5', borderColor: colors.border }]}>
+          <View style={[styles.inputWrapper, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
             <View style={styles.inputIcon}>
               <LinkIcon size={18} color={colors.textTertiary} />
             </View>
@@ -189,7 +189,7 @@ export const ImportScreen: React.FC = () => {
 
         {/* 进度条 — 仅在任务进行中显示 */}
         {activeTask && (activeTask.status === TaskStatus.RUNNING || activeTask.status === TaskStatus.PENDING) && (
-          <View style={styles.progressInline}>
+          <View style={[styles.progressInline, { backgroundColor: colors.backgroundSecondary }]}>
             <View style={styles.progressRow}>
               <ActivityIndicator size="small" color={colors.primary} />
               <Text style={[styles.progressLabel, { color: colors.text }]}>
@@ -197,7 +197,7 @@ export const ImportScreen: React.FC = () => {
               </Text>
               <Text style={[styles.progressPercent, { color: colors.primary }]}>{Math.round(activeTask.progress)}%</Text>
             </View>
-            <View style={styles.progressBar}>
+            <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
               <View style={[styles.progressFill, { backgroundColor: colors.primary, width: `${Math.max(activeTask.progress, 5)}%` }]} />
             </View>
           </View>
@@ -266,14 +266,14 @@ const styles = StyleSheet.create({
   platformItemName: { ...typography.caption, textAlign: 'center' },
   importButton: { paddingVertical: spacing.md, borderRadius: 12, alignItems: 'center' },
   importButtonText: { ...typography.button, fontWeight: '600' },
-  progressInline: { padding: spacing.md, borderRadius: 12, backgroundColor: '#F5F5F5', gap: spacing.sm, marginBottom: spacing.lg },
+  progressInline: { padding: spacing.md, borderRadius: 12, gap: spacing.sm, marginBottom: spacing.lg },
   progressResult: {},
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   progressLabel: { ...typography.body, fontWeight: '500', flex: 1 },
   progressPercent: { ...typography.caption, fontWeight: '600' },
   progressResultText: { ...typography.caption, marginTop: spacing.xs },
   dismissText: { ...typography.caption, fontWeight: '500', padding: spacing.xs },
-  progressBar: { width: '100%', height: 4, backgroundColor: '#E5E5EA', borderRadius: 2, overflow: 'hidden' },
+  progressBar: { width: '100%', height: 4, borderRadius: 2, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 2 },
 });
 

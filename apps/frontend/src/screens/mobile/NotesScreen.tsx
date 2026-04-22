@@ -212,7 +212,7 @@ export const NotesScreen: React.FC = () => {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.searchBar}>
-        <View style={[styles.searchInputWrap, { backgroundColor: '#E5E5EA' }]}>
+        <View style={[styles.searchInputWrap, { backgroundColor: colors.backgroundSecondary }]}>
           <SearchIcon size={16} color={colors.textTertiary} />
           {selectedTag && (
             <View style={[styles.searchTagChip, { backgroundColor: getTagColor(selectedTag) + '20' }]}>
@@ -241,7 +241,7 @@ export const NotesScreen: React.FC = () => {
       {tags.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tagBar} contentContainerStyle={styles.tagBarContent}>
           <TouchableOpacity
-            style={[styles.tagChip, { backgroundColor: selectedTag === null ? colors.primary + '20' : '#E5E5EA' }]}
+            style={[styles.tagChip, { backgroundColor: selectedTag === null ? colors.primary + '20' : colors.border }]}
             onPress={() => setSelectedTag(null)}
             activeOpacity={0.6}
           >
