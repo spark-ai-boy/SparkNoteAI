@@ -1,84 +1,116 @@
-// 关于页面（手机端）— iOS 分组卡片风格
+// 关于页面（手机端）— 简洁风格
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+} from 'react-native';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 import { spacing } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
+import { SparklesIcon } from '../../components/icons';
+
+const GITHUB_URL = 'https://github.com/SparkNoteAI/SparkNoteAI';
+const DOCS_URL = 'https://github.com/SparkNoteAI/SparkNoteAI/wiki';
 
 export const AboutScreen: React.FC = () => {
   const colors = useTheme();
+  const version = Constants.expoConfig?.version ?? '1.1.0';
+
+  const openUrl = (url: string) => {
+    // fallback: 如果 expo-linking 不可用则忽略
+    import('expo-linking')
+      .then((linking) => linking.default.openURL(url))
+      .catch(() => {});
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Logo */}
-        <View style={styles.logoSection}>
+        {/* Logo + 名称 */}
+        <View style={styles.header}>
+          <View style={[styles.logoCircle, { backgroundColor: colors.backgroundSecondary }]}>
+            <SparklesIcon size={36} color={colors.primary} />
+          </View>
           <Text style={[styles.appName, { color: colors.text }]}>SparkNoteAI</Text>
-          <Text style={[styles.slogan, { color: colors.textSecondary }]}>
-            拾光如 spark，沉淀成 note
-          </Text>
-          <Text style={[styles.slogan, { color: colors.textSecondary }]}>
-            捕捉灵感的碎片，编织知识的图谱
-          </Text>
-          <Text style={[styles.version, { color: colors.textTertiary }]}>Version 1.0.0</Text>
+          <Text style={[styles.version, { color: colors.textTertiary }]}>v{version}</Text>
         </View>
 
-        {/* 技术栈 */}
+        {/* 描述 */}
         <View style={[styles.card, { backgroundColor: colors.backgroundSecondary }]}>
-          <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>技术栈</Text>
-          <DetailRow label="后端" value="FastAPI + PostgreSQL + Neo4j" colors={colors} />
-          <DetailRow label="前端" value="React Native + Expo" colors={colors} />
-          <DetailRow label="AI" value="多模型大语言模型" colors={colors} isLast />
+          <Text style={[styles.desc, { color: colors.textSecondary }]}>
+            SparkNoteAI 是一个知识整理与管理系统，支持笔记管理、碎片化内容采集、大模型智能总结、知识图谱可视化和智能搜索。
+          </Text>
+        </View>
+
+        {/* 链接 */}
+        <View style={[styles.card, { backgroundColor: colors.backgroundSecondary }]}>
+          <Pressable onPress={() => openUrl(GITHUB_URL)} style={styles.linkRow}>
+            <Text style={[styles.linkLabel, { color: colors.text }]}>GitHub</Text>
+            <Text style={[styles.linkValue, { color: colors.textSecondary }]} numberOfLines={1}>{GITHUB_URL}</Text>
+          </Pressable>
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          <Pressable onPress={() => openUrl(DOCS_URL)} style={styles.linkRow}>
+            <Text style={[styles.linkLabel, { color: colors.text }]}>文档</Text>
+            <Text style={[styles.linkValue, { color: colors.textSecondary }]} numberOfLines={1}>{DOCS_URL}</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </View>
   );
 };
 
-const DetailRow: React.FC<{ label: string; value: string; colors: ReturnType<typeof useTheme>; isLast?: boolean }> = ({ label, value, colors, isLast }) => (
-  <View style={[styles.detailRow, !isLast && { borderBottomColor: colors.border, borderBottomWidth: 0.5 }]}>
-    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{label}</Text>
-    <Text style={[styles.detailValue, { color: colors.text }]}>{value}</Text>
-  </View>
-);
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: spacing.md, paddingBottom: spacing.xl },
-  logoSection: {
+
+  header: {
     alignItems: 'center',
     paddingVertical: spacing.xl * 2,
   },
-  appName: {
-    fontSize: 28,
-    fontWeight: '700',
-    marginBottom: spacing.sm,
+  logoCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
   },
-  slogan: {
-    fontSize: 14,
-    marginBottom: spacing.xs,
+  appName: {
+    fontSize: 24,
+    fontWeight: '700',
   },
   version: {
-    fontSize: 12,
-    marginTop: spacing.lg,
-  },
-  card: { borderRadius: 12, overflow: 'hidden' },
-  groupLabel: {
     fontSize: 13,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xs,
+    marginTop: spacing.xs,
   },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+
+  card: { borderRadius: 12, overflow: 'hidden', marginBottom: spacing.md },
+  desc: {
+    fontSize: 14,
+    lineHeight: 24,
+    textAlign: 'center',
+    padding: spacing.lg,
+  },
+
+  linkRow: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    alignItems: 'center',
   },
-  detailLabel: { fontSize: 15 },
-  detailValue: { fontSize: 14 },
+  linkLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  linkValue: {
+    fontSize: 13,
+  },
+  divider: { height: 0.5, marginLeft: spacing.md },
 });
 
 export default AboutScreen;
