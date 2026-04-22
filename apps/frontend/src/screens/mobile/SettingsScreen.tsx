@@ -84,7 +84,7 @@ const NAV_MAP: Record<string, keyof SettingsStackParamList> = {
 
 // feature_id → 导航 key 映射
 const FEATURE_NAV_MAP: Record<string, keyof SettingsStackParamList> = {
-  notes_config: 'NotesConfig',
+  notes: 'NotesConfig',
   knowledge_graph: 'KnowledgeGraphConfig',
   ai_assistant: 'AIAssistantConfig',
 };
@@ -175,9 +175,9 @@ export const SettingsScreen: React.FC = () => {
       })
     : [
         // fallback 占位
-        { id: 'notes_config', icon: <BookIcon size={20} color={colors.textSecondary} />, title: '笔记管理', onPress: () => handleNavigate('notes_config') },
-        { id: 'knowledge_graph', icon: <NetworkIcon size={20} color={colors.textSecondary} />, title: '知识图谱', onPress: () => handleNavigate('knowledge_graph_config') },
-        { id: 'ai_assistant', icon: <SparklesIcon size={20} color={colors.textSecondary} />, title: 'AI 助手', onPress: () => handleNavigate('ai_assistant_config') },
+        { id: 'notes', icon: <BookIcon size={20} color={colors.textSecondary} />, title: '笔记管理', onPress: () => navigation.navigate('NotesConfig') },
+        { id: 'knowledge_graph', icon: <NetworkIcon size={20} color={colors.textSecondary} />, title: '知识图谱', onPress: () => navigation.navigate('KnowledgeGraphConfig') },
+        { id: 'ai_assistant', icon: <SparklesIcon size={20} color={colors.textSecondary} />, title: 'AI 助手', onPress: () => navigation.navigate('AIAssistantConfig') },
       ];
 
   const sections: SettingsSection[] = [

@@ -22,6 +22,7 @@ import { ImageStorageScreen } from '../screens/mobile/ImageStorageScreen';
 import { ImageStorageFormScreen } from '../screens/mobile/ImageStorageFormScreen';
 import { KnowledgeGraphConfigScreen } from '../screens/mobile/KnowledgeGraphConfigScreen';
 import { AIAssistantConfigScreen } from '../screens/mobile/AIAssistantConfigScreen';
+import { NotesConfigScreen } from '../screens/mobile/NotesConfigScreen';
 
 import {
   NativeStackScreenProps,
@@ -89,7 +90,7 @@ export const SettingsStack: React.FC = () => {
     <Stack.Screen name="ImageStorageCreate" component={ImageStorageFormScreen} options={{ title: '添加图床配置' }} />
     <Stack.Screen name="ImageStorageEdit" component={ImageStorageFormScreen} />
     <Stack.Screen name="DataManagement" component={DataManagementScreen} options={{ title: '数据管理' }} />
-    <Stack.Screen name="NotesConfig" component={FeaturePlaceholderScreen} options={{ title: '笔记管理' }} />
+    <Stack.Screen name="NotesConfig" component={NotesConfigScreen} options={{ title: '笔记管理' }} />
     <Stack.Screen name="KnowledgeGraphConfig" component={KnowledgeGraphConfigScreen} options={{ title: '知识图谱' }} />
     <Stack.Screen name="AIAssistantConfig" component={AIAssistantConfigScreen} options={{ title: 'AI 助手' }} />
     <Stack.Screen name="About" component={AboutScreen} options={{ title: '关于' }} />
@@ -106,7 +107,6 @@ type PlaceholderScreenProps = {
 
 const FeaturePlaceholderScreen: React.FC<PlaceholderScreenProps> = ({ route, navigation }) => {
   const titles: Record<string, { title: string; desc: string }> = {
-    NotesConfig: { title: '笔记管理', desc: '内容总结、标签提取' },
     AIAssistantConfig: { title: 'AI 助手', desc: 'AI 助手聊天设置' },
   };
 
