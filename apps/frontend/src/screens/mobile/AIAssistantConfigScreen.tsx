@@ -232,21 +232,19 @@ const ConfigGroupSection: React.FC<{
         return (
           <View key={field.name}>
             <View style={[styles.fieldRow, !isLast && { borderBottomColor: colors.border }]}>
-              <View style={styles.fieldInfo}>
-                <View style={styles.fieldLabelRow}>
-                  <Text style={[styles.fieldLabel, { color: colors.text }]}>{field.label}</Text>
-                  {field.required && (
-                    <View style={[styles.requiredBadge, { backgroundColor: colors.error + '18' }]}>
-                      <Text style={[styles.requiredBadgeText, { color: colors.error }]}>必填</Text>
-                    </View>
-                  )}
-                </View>
-                {field.description && (
-                  <Text style={[styles.fieldDesc, { color: colors.textSecondary }]} numberOfLines={2}>
-                    {field.description}
-                  </Text>
+              <View style={styles.fieldLabelRow}>
+                <Text style={[styles.fieldLabel, { color: colors.text }]}>{field.label}</Text>
+                {field.required && (
+                  <View style={[styles.requiredBadge, { backgroundColor: colors.error + '18' }]}>
+                    <Text style={[styles.requiredBadgeText, { color: colors.error }]}>必填</Text>
+                  </View>
                 )}
               </View>
+              {field.description && (
+                <Text style={[styles.fieldDesc, { color: colors.textSecondary }]} numberOfLines={2}>
+                  {field.description}
+                </Text>
+              )}
               <View style={styles.fieldInputWrap}>
                 <ConfigFieldInput
                   field={field}
@@ -554,32 +552,27 @@ const styles = StyleSheet.create({
   },
   groupTitle: { fontSize: 14, fontWeight: '600' },
 
-  // 字段行
+  // 字段行（上下堆叠：label + desc + 输入框）
   fieldRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderBottomWidth: 0.5,
-    minHeight: 56,
   },
-  fieldInfo: { flex: 1, paddingRight: spacing.md },
-  fieldLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: 2 },
+  fieldLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: 4 },
   fieldLabel: { fontSize: 14, fontWeight: '500' },
   requiredBadge: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 },
   requiredBadgeText: { fontSize: 10, fontWeight: '600' },
-  fieldDesc: { fontSize: 12, lineHeight: 16 },
-  fieldInputWrap: { minWidth: 120, alignItems: 'flex-end' },
+  fieldDesc: { fontSize: 12, lineHeight: 16, marginBottom: spacing.sm, marginTop: 2 },
+  fieldInputWrap: { width: '100%' },
 
   // 输入控件
   textInput: {
     borderRadius: 8,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: spacing.sm,
     fontSize: 14,
-    minWidth: 100,
-    textAlign: 'right',
+    width: '100%',
+    minHeight: 38,
   },
   numberInputWrap: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   numberInput: {
@@ -599,11 +592,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderRadius: 8,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    minWidth: 100,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    width: '100%',
+    minHeight: 38,
   },
-  selectText: { fontSize: 14, flex: 1, textAlign: 'right' },
+  selectText: { fontSize: 14, flex: 1 },
 
   // 底部弹出选择器
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
