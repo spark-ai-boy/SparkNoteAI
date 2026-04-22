@@ -1,4 +1,4 @@
-// 知识图谱设置（手机端）— iOS 分组卡片风格
+// AI 助手设置（手机端）— iOS 分组卡片风格
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -21,7 +21,7 @@ import type { ConfigField } from '../../api/featureConfig';
 import {
   ChevronDownIcon,
   CheckIcon,
-  NetworkIcon,
+  SparklesIcon,
   ThermometerIcon,
 } from '../../components/icons';
 import { GroupIcon } from '../../components/common/GroupIcon';
@@ -266,9 +266,9 @@ const ConfigGroupSection: React.FC<{
 
 // ---- 主组件 ----
 
-export const KnowledgeGraphConfigScreen: React.FC = () => {
+export const AIAssistantConfigScreen: React.FC = () => {
   const colors = useTheme();
-  const featureId = 'knowledge_graph';
+  const featureId = 'ai_assistant';
   const {
     schemasMap,
     settings,
@@ -332,7 +332,7 @@ export const KnowledgeGraphConfigScreen: React.FC = () => {
     try {
       await saveSetting(featureId, formValues);
       setHasChanges(false);
-      Alert.alert('保存成功', '知识图谱配置已保存');
+      Alert.alert('保存成功', 'AI 助手配置已保存');
     } catch (e: any) {
       Alert.alert('保存失败', e.message || error || '未知错误');
     }
@@ -405,7 +405,7 @@ export const KnowledgeGraphConfigScreen: React.FC = () => {
   if (!schema) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <NetworkIcon size={48} color={colors.textTertiary} />
+        <SparklesIcon size={48} color={colors.textTertiary} />
         <Text style={[styles.centerText, { color: colors.textSecondary }]}>配置不存在</Text>
       </View>
     );
@@ -417,7 +417,7 @@ export const KnowledgeGraphConfigScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* 描述头 */}
       <View style={[styles.infoCard, { backgroundColor: colors.backgroundSecondary }]}>
-        <NetworkIcon size={24} color={colors.blue} />
+        <SparklesIcon size={24} color={colors.blue} />
         <View style={styles.infoText}>
           <Text style={[styles.infoTitle, { color: colors.text }]}>{schema.feature_name}</Text>
           <Text style={[styles.infoDesc, { color: colors.textSecondary }]}>{schema.description}</Text>
@@ -447,13 +447,15 @@ export const KnowledgeGraphConfigScreen: React.FC = () => {
 
       {/* 底部操作栏 */}
       <View style={[styles.footer, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
-        <Pressable
-          style={[styles.resetBtn, { borderColor: colors.border }]}
-          onPress={() => setShowResetConfirm(true)}
-          disabled={isSaving}
-        >
-          <Text style={[styles.resetBtnText, { color: colors.textSecondary }]}>恢复默认</Text>
-        </Pressable>
+        {!schema.is_required && (
+          <Pressable
+            style={[styles.resetBtn, { borderColor: colors.border }]}
+            onPress={() => setShowResetConfirm(true)}
+            disabled={isSaving}
+          >
+            <Text style={[styles.resetBtnText, { color: colors.textSecondary }]}>恢复默认</Text>
+          </Pressable>
+        )}
         <View style={styles.footerRight}>
           {hasChanges && (
             <Text style={[styles.unsavedText, { color: colors.primary }]}>有未保存的更改</Text>
@@ -495,7 +497,7 @@ export const KnowledgeGraphConfigScreen: React.FC = () => {
           <Pressable style={[styles.dialog, { backgroundColor: colors.backgroundSecondary }]} onPress={() => {}}>
             <Text style={[styles.dialogTitle, { color: colors.text }]}>恢复默认配置</Text>
             <Text style={[styles.dialogMsg, { color: colors.textSecondary }]}>
-              确定要将知识图谱配置恢复为默认值吗？此操作不可撤销。
+              确定要将 AI 助手配置恢复为默认值吗？此操作不可撤销。
             </Text>
             <View style={styles.dialogBtns}>
               <Pressable style={styles.dialogCancel} onPress={() => setShowResetConfirm(false)}>
@@ -658,4 +660,4 @@ const styles = StyleSheet.create({
   dialogConfirmText: { fontSize: 14, fontWeight: '600', color: '#fff' },
 });
 
-export default KnowledgeGraphConfigScreen;
+export default AIAssistantConfigScreen;
