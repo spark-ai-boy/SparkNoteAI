@@ -20,6 +20,7 @@ import { NotificationSettingsScreen } from '../screens/mobile/NotificationSettin
 import { DataManagementScreen } from '../screens/mobile/DataManagementScreen';
 import { ImageStorageScreen } from '../screens/mobile/ImageStorageScreen';
 import { ImageStorageFormScreen } from '../screens/mobile/ImageStorageFormScreen';
+import { KnowledgeGraphConfigScreen } from '../screens/mobile/KnowledgeGraphConfigScreen';
 
 import {
   NativeStackScreenProps,
@@ -88,7 +89,7 @@ export const SettingsStack: React.FC = () => {
     <Stack.Screen name="ImageStorageEdit" component={ImageStorageFormScreen} />
     <Stack.Screen name="DataManagement" component={DataManagementScreen} options={{ title: '数据管理' }} />
     <Stack.Screen name="NotesConfig" component={FeaturePlaceholderScreen} options={{ title: '笔记管理' }} />
-    <Stack.Screen name="KnowledgeGraphConfig" component={FeaturePlaceholderScreen} options={{ title: '知识图谱' }} />
+    <Stack.Screen name="KnowledgeGraphConfig" component={KnowledgeGraphConfigScreen} options={{ title: '知识图谱' }} />
     <Stack.Screen name="AIAssistantConfig" component={FeaturePlaceholderScreen} options={{ title: 'AI 助手' }} />
     <Stack.Screen name="About" component={AboutScreen} options={{ title: '关于' }} />
     <Stack.Screen name="Tasks" component={TasksScreen} options={{ title: '后台任务' }} />
