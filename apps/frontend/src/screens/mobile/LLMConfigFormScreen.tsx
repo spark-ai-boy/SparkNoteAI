@@ -82,10 +82,10 @@ export const LLMConfigFormScreen: React.FC = () => {
     try {
       const data: any = {
         integration_type: 'llm',
+        provider: integrationType,
         name: name.trim(),
         config_key: isEdit ? configKey : name.trim().toLowerCase().replace(/\s+/g, '_'),
         config: {
-          provider: integrationType,
           model,
           ...(baseUrl.trim() && { base_url: baseUrl.trim() }),
           ...(endpoint.trim() && { endpoint: endpoint.trim() }),

@@ -31,6 +31,7 @@ export interface LLMIntegration {
 // 创建 LLM 配置请求
 export interface CreateLLMIntegrationRequest {
   integration_type: string;
+  provider: string;
   name: string;
   config_key?: string;
   config: {
