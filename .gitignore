@@ -56,6 +56,8 @@ htmlcov/
 
 # Expo
 apps/frontend/.expo/
+apps/frontend/android/
+apps/frontend/ios/
 apps/frontend/*.jks
 apps/frontend/*.p8
 apps/frontend/*.p12
@@ -63,11 +65,7 @@ apps/frontend/*.key
 apps/frontend/*.mobileprovision
 apps/frontend/*.orig.*
 
-# React Native
-apps/frontend/android/app/build/
-apps/frontend/android/.gradle/
-apps/frontend/ios/build/
-apps/frontend/ios/Pods/
+# React Native (sub-paths no longer needed since android/ios/ are fully ignored)
 
 # Python
 apps/backend/.pytest_cache/

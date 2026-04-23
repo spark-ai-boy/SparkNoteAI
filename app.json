@@ -1,0 +1,8 @@
+{
+  "ios": {
+    "bundleIdentifier": "com.anonymous.sparknote-ai"
+  },
+  "android": {
+    "package": "com.anonymous.sparknoteai"
+  }
+}

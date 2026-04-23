@@ -1,18 +1,20 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "SparkNoteAI",
+    "slug": "sparknoteai",
     "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sparknoteai.app",
+      "associatedDomains": ["applinks:sparknoteai.com"]
     },
     "android": {
       "adaptiveIcon": {
@@ -21,10 +23,40 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.sparknoteai.app",
+      "scheme": "sparknoteai",
+      "intentFilters": [
+        {
+          "action": "SEND",
+          "category": ["DEFAULT"],
+          "data": { "mimeType": "text/plain" }
+        },
+        {
+          "action": "VIEW",
+          "category": ["DEFAULT", "BROWSABLE"],
+          "data": { "scheme": "sparknoteai", "host": "import" }
+        },
+        {
+          "action": "VIEW",
+          "category": ["DEFAULT", "BROWSABLE"],
+          "data": { "scheme": "https", "host": "sparknoteai.com", "pathPrefix": "/import" }
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-secure-store",
+      "./plugins/withCleartextTraffic",
+      "./plugins/withShareIntent",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "应用需要访问您的相册才能上传笔记中的图片。"
+        }
+      ]
+    ]
   }
 }

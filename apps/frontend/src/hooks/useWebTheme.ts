@@ -133,22 +133,24 @@ export const useWebTheme = (): WebThemeColors => {
   const [colors, setColors] = useState<WebThemeColors>(defaultColors);
 
   useEffect(() => {
-    if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      // 初始获取颜色
-      setColors(getColorsFromCss());
-
-      // 创建 MutationObserver 监听 CSS 变量变化
-      const observer = new MutationObserver(() => {
-        setColors(getColorsFromCss());
-      });
-
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['style'],
-      });
-
-      return () => observer.disconnect();
+    if (Platform.OS !== 'web' || typeof document === 'undefined') {
+      return;
     }
+
+    // 初始获取颜色
+    setColors(getColorsFromCss());
+
+    // 创建 MutationObserver 监听 CSS 变量变化
+    const observer = new MutationObserver(() => {
+      setColors(getColorsFromCss());
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['style'],
+    });
+
+    return () => observer.disconnect();
   }, []);
 
   return colors;

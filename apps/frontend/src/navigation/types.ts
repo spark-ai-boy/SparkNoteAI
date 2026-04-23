@@ -6,16 +6,18 @@ import { NavigatorScreenParams } from '@react-navigation/native';
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
+  ServerConfig: undefined;
 };
 
 // 主标签导航参数类型
 export type MainTabParamList = {
-  Notes: undefined;
-  Fragments: undefined;
+  AIAgent: undefined;
   KnowledgeGraph: undefined;
-  Mindmap: undefined;
-  Tasks: undefined;       // 后台任务
+  Notes: undefined;
   Settings: undefined;
+  Fragments: undefined;       // Web 端使用
+  Mindmap: undefined;         // Web 端使用
+  Tasks: undefined;           // Web 端使用
 };
 
 // 笔记栈导航参数类型

@@ -2,6 +2,7 @@
 
 import client from './client';
 import type { ConfigField } from './featureConfig';
+import { Platform } from 'react-native';
 
 // 重新导出 ConfigField 供其他模块使用
 export type { ConfigField };
@@ -181,7 +182,7 @@ export const getImageStorageProviderSchema = async (providerId: string): Promise
 export const getImageStorageConfig = getImageStorageIntegrations;
 export const saveImageStorageConfig = createImageStorageIntegration;
 
-// 上传一张或多张图片
+// 上传一张或多图片（Web 端，使用 File 对象）
 export const uploadImage = async (files: File[]): Promise<string[]> => {
   const formData = new FormData();
   files.forEach((file) => {
@@ -193,6 +194,48 @@ export const uploadImage = async (files: File[]): Promise<string[]> => {
       'Content-Type': 'multipart/form-data',
     },
   });
+  return response.data.urls;
+};
+
+// 上传图片（移动端，使用本地 URI）
+export interface MobileImageUploadData {
+  uri: string;
+  fileName: string;
+  type: string;
+}
+
+/**
+ * 将本地文件读取为 base64
+ * React Native 中 fetch 支持 file:// URI，返回 blob 后通过 FileReader 转为 base64
+ */
+const fileToBase64 = async (uri: string): Promise<string> => {
+  // 确保 uri 带有 file:// 前缀
+  const fullUri = uri.startsWith('file://') ? uri : `file://${uri}`;
+
+  const response = await fetch(fullUri);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      // 去掉 data:image/jpeg;base64, 前缀
+      const base64 = result.split(',')[1] || result;
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
+export const uploadImageMobile = async (images: MobileImageUploadData[]): Promise<string[]> => {
+  const base64Images = await Promise.all(
+    images.map(async (image) => ({
+      data: await fileToBase64(image.uri),
+      filename: image.fileName,
+    }))
+  );
+
+  const response = await client.post('/images/upload-base64', { images: base64Images });
   return response.data.urls;
 };
 
@@ -208,4 +251,5 @@ export default {
   getImageStorageProviders,
   getImageStorageProviderSchema,
   uploadImage,
+  uploadImageMobile,
 };

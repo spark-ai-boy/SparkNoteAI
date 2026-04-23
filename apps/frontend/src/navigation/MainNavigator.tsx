@@ -1,24 +1,35 @@
-// 主标签导航
+// 主导航 — 手机端：单页栈 + 右上角入口；Web/桌面端：多 Tab
 
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, View, StyleSheet } from 'react-native';
+import { Text, View, StyleSheet, Platform, TouchableOpacity } from 'react-native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import {
   NotesScreen,
-  FragmentsScreen,
-  KnowledgeGraphScreen,
-  MindmapScreen,
   SettingsScreen,
+  KnowledgeGraphScreen,
+  TasksScreen as MobileTasksScreen,
+} from '../screens/mobile';
+import { AIAgentScreen } from '../screens/mobile/AIAgentScreen';
+import { NoteDetailScreen } from '../screens/mobile/NoteDetailScreen';
+import { GraphNodeDetailScreen } from '../screens/mobile/GraphNodeDetailScreen';
+import { ImportScreen } from '../screens/mobile/ImportScreen';
+import { SettingsStack } from './SettingsStack';
+import {
+  FragmentsScreen,
+  MindmapScreen,
   TasksScreen,
-} from '../screens/main';
+} from '../screens/web';
+import { KnowledgeGraphScreen as WebKnowledgeGraphScreen } from '../screens/web/KnowledgeGraphScreen';
 import { MainTabParamList } from './types';
-import { useWebTheme } from '../hooks/useWebTheme';
+import { useTheme } from '../hooks/useTheme';
+import { BotIcon, NetworkIcon, BookIcon, SettingsIcon, ChevronLeftIcon } from '../components/icons';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-// 简单的图标组件（后续可替换为 react-native-vector-icons）
-const TabIcon: React.FC<{ name: string; focused: boolean; colors: ReturnType<typeof useWebTheme> }> = ({ name, focused, colors }) => {
+// Web 端 emoji 图标
+const TabIcon: React.FC<{ name: string; focused: boolean; colors: ReturnType<typeof useTheme> }> = ({ name, focused, colors }) => {
   const icons: Record<string, string> = {
     Notes: '📝',
     Fragments: '📄',
@@ -26,6 +37,7 @@ const TabIcon: React.FC<{ name: string; focused: boolean; colors: ReturnType<typ
     Mindmap: '🗺️',
     Tasks: '✅',
     Settings: '⚙️',
+    AIAgent: '🤖',
   };
 
   return (
@@ -37,9 +49,135 @@ const TabIcon: React.FC<{ name: string; focused: boolean; colors: ReturnType<typ
   );
 };
 
-export const MainNavigator: React.FC = () => {
-  const colors = useWebTheme();
+// 手机端：笔记栈（笔记为主入口，AI/图谱/设置在右上角）
+const MobileNotesStack = createNativeStackNavigator<{
+  NotesHome: undefined;
+  AIAgent: undefined;
+  KnowledgeGraph: undefined;
+  Settings: undefined;
+  Tasks: undefined;
+  NoteDetail: { noteId: number };
+  Import: { url?: string };
+  GraphNodeDetail: { nodeId: number; nodeName: string; nodeType: string; nodeDescription?: string };
+}>();
 
+export const MobileNotesStackScreen: React.FC = () => {
+  const colors = useTheme();
+
+  return (
+    <MobileNotesStack.Navigator
+      screenOptions={{
+        headerTintColor: colors.primary,
+        headerTitleStyle: { fontSize: 17, fontWeight: '600' },
+        animation: 'slide_from_right',
+        headerBackTitleVisible: false,
+      } as any}
+    >
+      <MobileNotesStack.Screen
+        name="NotesHome"
+        component={NotesScreen}
+        options={{
+          title: 'SparkNote AI',
+          headerStyle: { backgroundColor: colors.background },
+        }}
+      />
+      <MobileNotesStack.Screen
+        name="NoteDetail"
+        component={NoteDetailScreen}
+        options={({ navigation }) => ({
+          title: '笔记详情',
+          headerStyle: { backgroundColor: colors.background },
+          headerLeft: () => (
+            <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
+              <ChevronLeftIcon size={22} color={colors.primary} />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+      <MobileNotesStack.Screen
+        name="Import"
+        component={ImportScreen}
+        options={({ navigation }) => ({
+          title: '导入笔记',
+          headerStyle: { backgroundColor: colors.background },
+          headerLeft: () => (
+            <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
+              <ChevronLeftIcon size={22} color={colors.primary} />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+      <MobileNotesStack.Screen
+        name="AIAgent"
+        component={AIAgentScreen}
+        options={({ navigation }) => ({
+          title: 'AI 助手',
+          headerStyle: { backgroundColor: colors.background },
+          headerLeft: () => (
+            <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
+              <ChevronLeftIcon size={22} color={colors.primary} />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+      <MobileNotesStack.Screen
+        name="KnowledgeGraph"
+        component={KnowledgeGraphScreen}
+        options={({ navigation }) => ({
+          title: '知识图谱',
+          headerStyle: { backgroundColor: colors.background },
+          headerLeft: () => (
+            <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
+              <ChevronLeftIcon size={22} color={colors.primary} />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+      <MobileNotesStack.Screen
+        name="Settings"
+        component={SettingsStack}
+        options={{ headerShown: false }}
+      />
+      <MobileNotesStack.Screen
+        name="GraphNodeDetail"
+        component={GraphNodeDetailScreen}
+        options={({ navigation }) => ({
+          title: '节点详情',
+          headerStyle: { backgroundColor: colors.background },
+          headerLeft: () => (
+            <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
+              <ChevronLeftIcon size={22} color={colors.primary} />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+      <MobileNotesStack.Screen
+        name="Tasks"
+        component={MobileTasksScreen}
+        options={({ navigation }) => ({
+          title: '后台任务',
+          headerStyle: { backgroundColor: colors.background },
+          headerLeft: () => (
+            <TouchableOpacity activeOpacity={0.5} onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}>
+              <ChevronLeftIcon size={22} color={colors.primary} />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+    </MobileNotesStack.Navigator>
+  );
+};
+
+export const MainNavigator: React.FC = () => {
+  const colors = useTheme();
+  const isMobile = Platform.OS !== 'web';
+
+  // 手机端：单页栈 + 右上角入口
+  if (isMobile) {
+    return <MobileNotesStackScreen />;
+  }
+
+  // Web/Electron 端：原有布局
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -65,7 +203,7 @@ export const MainNavigator: React.FC = () => {
       />
       <Tab.Screen
         name="KnowledgeGraph"
-        component={KnowledgeGraphScreen}
+        component={WebKnowledgeGraphScreen}
         options={{ tabBarLabel: '图谱' }}
       />
       <Tab.Screen
@@ -90,13 +228,12 @@ export const MainNavigator: React.FC = () => {
 const styles = StyleSheet.create({
   tabBar: {
     borderTopWidth: 1,
-    height: 60,
-    paddingBottom: 8,
-    paddingTop: 8,
+    height: 44,
   },
   tabBarLabel: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '500',
+    marginTop: 4,
   },
   iconContainer: {
     alignItems: 'center',

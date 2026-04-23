@@ -4,9 +4,55 @@ import { create } from 'zustand';
 import axios from 'axios';
 import apiClient from '../api/client';
 import { Platform } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import { APP_VERSION } from '../utils/version';
 
 const STORAGE_KEY = '@sparknoteai:serverConfig';
+const SECURE_KEY = 'server_base_url';
+
+// 本地存储操作
+const getStoredConfig = async (): Promise<{ baseUrl: string } | null> => {
+  try {
+    if (Platform.OS === 'web') {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } else {
+      const stored = await SecureStore.getItemAsync(SECURE_KEY);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    }
+  } catch (e) {
+    console.error('解析服务器配置失败:', e);
+  }
+  return null;
+};
+
+const saveStoredConfig = async (config: { baseUrl: string }) => {
+  try {
+    if (Platform.OS === 'web') {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    } else {
+      await SecureStore.setItemAsync(SECURE_KEY, JSON.stringify(config));
+    }
+  } catch (e) {
+    console.error('保存服务器配置失败:', e);
+  }
+};
+
+const clearStoredConfig = async () => {
+  try {
+    if (Platform.OS === 'web') {
+      localStorage.removeItem(STORAGE_KEY);
+    } else {
+      await SecureStore.deleteItemAsync(SECURE_KEY);
+    }
+  } catch (e) {
+    console.error('清除服务器配置失败:', e);
+  }
+};
 
 // 版本兼容性检查规则
 interface VersionCompatibility {
@@ -26,6 +72,7 @@ interface ServerInfoResponse {
 
 interface ServerConfigState {
   baseUrl: string;
+  hasConfigured: boolean;
   isLoading: boolean;
   isTesting: boolean;
   lastTestResult: boolean | null;
@@ -37,18 +84,15 @@ interface ServerConfigState {
   loadConfig: () => Promise<void>;
   setBaseUrl: (url: string) => Promise<void>;
   testConnection: () => Promise<VersionCompatibility>;
-  resetConfig: () => void;
+  testUrl: (url: string) => Promise<VersionCompatibility>;
+  resetConfig: () => Promise<void>;
   clearError: () => void;
 }
 
+const DEFAULT_BASE_URL = 'http://localhost:8000';
+
 // 当前客户端版本（从 package.json 读取）
 const CLIENT_VERSION = APP_VERSION;
-
-// 支持的服务器版本范围（语义化版本比较）
-const SUPPORTED_SERVER_VERSIONS = {
-  min: '1.0.0',
-  max: '2.0.0', // 不支持 2.0 及以上版本
-};
 
 // 解析版本号
 const parseVersion = (version: string): { major: number; minor: number; patch: number } => {
@@ -111,35 +155,9 @@ const checkVersionCompatibility = (
   };
 };
 
-// 本地存储操作
-const getStoredConfig = (): { baseUrl: string } | null => {
-  if (Platform.OS === 'web') {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch (e) {
-        console.error('解析服务器配置失败:', e);
-      }
-    }
-  }
-  return null;
-};
-
-const saveStoredConfig = (config: { baseUrl: string }) => {
-  if (Platform.OS === 'web') {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-  }
-};
-
-const clearStoredConfig = () => {
-  if (Platform.OS === 'web') {
-    localStorage.removeItem(STORAGE_KEY);
-  }
-};
-
 export const useServerConfigStore = create<ServerConfigState>((set, get) => ({
-  baseUrl: 'http://localhost:8000',
+  baseUrl: DEFAULT_BASE_URL,
+  hasConfigured: false,
   isLoading: true,
   isTesting: false,
   lastTestResult: null,
@@ -149,9 +167,9 @@ export const useServerConfigStore = create<ServerConfigState>((set, get) => ({
 
   loadConfig: async () => {
     set({ isLoading: true });
-    const stored = getStoredConfig();
+    const stored = await getStoredConfig();
     if (stored?.baseUrl) {
-      set({ baseUrl: stored.baseUrl, isLoading: false });
+      set({ baseUrl: stored.baseUrl, hasConfigured: true, isLoading: false });
       // 同步更新 apiClient 的 baseURL
       apiClient.defaults.baseURL = stored.baseUrl + '/api';
     } else {
@@ -163,35 +181,35 @@ export const useServerConfigStore = create<ServerConfigState>((set, get) => ({
     // 移除末尾的斜杠
     const normalizedUrl = url.replace(/\/$/, '');
 
-    saveStoredConfig({ baseUrl: normalizedUrl });
-    set({ baseUrl: normalizedUrl });
+    await saveStoredConfig({ baseUrl: normalizedUrl });
+    set({ baseUrl: normalizedUrl, hasConfigured: true });
 
     // 更新 API 客户端的 baseURL（添加 /api 后缀）
     apiClient.defaults.baseURL = normalizedUrl + '/api';
   },
 
   testConnection: async () => {
-    const { baseUrl } = get();
+    return get().testUrl(get().baseUrl);
+  },
+
+  testUrl: async (url: string) => {
+    const normalizedUrl = url.replace(/\/$/, '');
     set({ isTesting: true, error: null });
 
     try {
-      // 创建临时 axios 实例进行测试
-      // baseUrl 已经是完整的服务器地址（如 http://localhost:8000），直接添加 /api 后缀
-      const apiBaseUrl = baseUrl.endsWith('/api') ? baseUrl : baseUrl + '/api';
+      const apiBaseUrl = normalizedUrl.endsWith('/api') ? normalizedUrl : normalizedUrl + '/api';
       const testClient = axios.create({
         baseURL: apiBaseUrl,
         timeout: 10000,
       });
 
-      // 测试连接并获取服务器信息
       const response = await testClient.get('/health');
 
       if (response.status !== 200) {
         throw new Error(`服务器返回状态码：${response.status}`);
       }
 
-      // 尝试获取版本信息（如果后端支持）
-      let serverVersion = CLIENT_VERSION; // 默认使用客户端版本
+      let serverVersion = CLIENT_VERSION;
       let compatibleClientVersions: string[] = [];
       try {
         const versionResponse = await testClient.get('/version', { timeout: 5000 });
@@ -205,7 +223,6 @@ export const useServerConfigStore = create<ServerConfigState>((set, get) => ({
         console.log('服务器未提供版本信息，使用默认版本');
       }
 
-      // 检查版本兼容性
       const compatibility = checkVersionCompatibility(CLIENT_VERSION, serverVersion);
 
       set({
@@ -241,17 +258,17 @@ export const useServerConfigStore = create<ServerConfigState>((set, get) => ({
     }
   },
 
-  resetConfig: () => {
-    const defaultUrl = 'http://localhost:8000';
-    clearStoredConfig();
+  resetConfig: async () => {
+    await clearStoredConfig();
     set({
-      baseUrl: defaultUrl,
+      baseUrl: DEFAULT_BASE_URL,
+      hasConfigured: false,
       lastTestResult: null,
       serverInfo: null,
       compatibility: null,
       error: null,
     });
-    apiClient.defaults.baseURL = defaultUrl + '/api';
+    apiClient.defaults.baseURL = DEFAULT_BASE_URL + '/api';
   },
 
   clearError: () => {

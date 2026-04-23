@@ -228,3 +228,127 @@ jobs:
             release/SparkNoteAI-*.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ==================== Android APK ====================
+  android:
+    needs: version
+    runs-on: ubuntu-latest
+    env:
+      APP_VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate Android native project
+        run: |
+          cd apps/frontend
+          npx expo prebuild --clean --platform android
+
+      - name: Build APK
+        run: |
+          cd apps/frontend/android
+          ./gradlew assembleRelease
+
+      - name: Find APK
+        id: apk_path
+        run: |
+          APK=$(find apps/frontend/android/app/build/outputs/apk/release -name "*.apk" -not -name "*unaligned*" | head -1)
+          echo "apk=$APK" >> $GITHUB_OUTPUT
+          ls -la "$APK"
+
+      - name: Upload Android APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.version.outputs.version }}
+          name: Release v${{ needs.version.outputs.version }}
+          draft: true
+          generate_release_notes: true
+          files: ${{ steps.apk_path.outputs.apk }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ==================== iOS IPA ====================
+  ios:
+    needs: version
+    runs-on: macos-latest
+    env:
+      APP_VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate iOS native project
+        run: |
+          cd apps/frontend
+          npx expo prebuild --clean --platform ios
+
+      - name: Install CocoaPods
+        run: |
+          cd apps/frontend/ios
+          pod install
+
+      - name: Build IPA (no signing)
+        run: |
+          cd apps/frontend
+          xcodebuild -workspace ios/SparkNoteAI.xcworkspace \
+            -scheme SparkNoteAI \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath /tmp/SparkNoteAI.xcarchive \
+            archive \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Export IPA
+        run: |
+          mkdir -p apps/frontend/ios/build
+          cp -r /tmp/SparkNoteAI.xcarchive/Products/Applications/SparkNoteAI.app apps/frontend/ios/build/
+          cd apps/frontend/ios/build
+          mkdir Payload
+          cp -r SparkNoteAI.app Payload/
+          zip -r -q SparkNoteAI.ipa Payload
+          rm -rf Payload
+          mv SparkNoteAI.ipa .
+
+      - name: Find IPA
+        id: ipa_path
+        run: |
+          IPA=$(find apps/frontend/ios/build -name "*.ipa" | head -1)
+          echo "ipa=$IPA" >> $GITHUB_OUTPUT
+          ls -la "$IPA"
+
+      - name: Upload iOS IPA
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.version.outputs.version }}
+          name: Release v${{ needs.version.outputs.version }}
+          draft: true
+          generate_release_notes: true
+          files: ${{ steps.ipa_path.outputs.ipa }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

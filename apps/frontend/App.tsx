@@ -2,11 +2,11 @@
 
 import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Platform, View, StyleSheet, useColorScheme } from 'react-native';
+import { Platform, useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { RootNavigator } from './src/navigation';
-import { colors, lightColors, darkColors } from './src/theme';
+import { lightColors, darkColors } from './src/theme';
 import { useInterfaceSettingsStore } from './src/stores/interfaceSettingsStore';
 import { ToastContainer } from './src/components/ToastContainer';
 
@@ -178,30 +178,12 @@ export default function App() {
   useWebStyles();
   useThemeStyles();
 
-  // Web 端不需要 SafeAreaProvider
-  if (Platform.OS === 'web') {
-    return (
-      <View style={styles.webContainer}>
-        <RootNavigator />
-        <ToastContainer />
-      </View>
-    );
-  }
-
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
+      {/* Web 端不需要 StatusBar */}
+      {Platform.OS !== 'web' && <StatusBar style="light" />}
       <RootNavigator />
       <ToastContainer />
     </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  webContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-    height: '100vh',
-    overflow: 'hidden',
-  },
-});
