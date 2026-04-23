@@ -6,6 +6,7 @@ import { NavigatorScreenParams } from '@react-navigation/native';
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
+  ServerConfig: undefined;
 };
 
 // 主标签导航参数类型

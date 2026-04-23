@@ -18,7 +18,6 @@ import { spacing } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../stores';
 import { useFeatureConfigStore } from '../../stores/featureConfigStore';
-import { notesApi } from '../../api/note';
 import { ChevronRightIcon } from '../../components/icons';
 import {
   UserIcon,
@@ -118,18 +117,6 @@ export const SettingsScreen: React.FC = () => {
     if (screen) navigation.navigate(screen);
   }, [navigation]);
 
-  const handleExportNotes = useCallback(async () => {
-    try {
-      await notesApi.exportNotes();
-    } catch (e: any) {
-      if (e.response?.status === 404) {
-        Alert.alert('提示', '暂无笔记可导出');
-      } else {
-        Alert.alert('错误', '导出失败，请重试');
-      }
-    }
-  }, []);
-
   const handleLogout = useCallback(() => {
     const title = '确认退出';
     const message = '确定要退出登录吗？';
@@ -157,7 +144,6 @@ export const SettingsScreen: React.FC = () => {
     image_storage: <ImageIcon size={20} color={colors.textSecondary} />,
     data: <DatabaseIcon size={20} color={colors.textSecondary} />,
     about: <InfoIcon size={20} color={colors.textSecondary} />,
-    export_notes: <DatabaseIcon size={20} color={colors.textSecondary} />,
     logout: <LogOutIcon size={20} color={colors.error} />,
   };
 
@@ -212,7 +198,6 @@ export const SettingsScreen: React.FC = () => {
     {
       title: '快捷操作',
       data: [
-        { id: 'export_notes', icon: staticIconMap.export_notes, title: '导出笔记', onPress: handleExportNotes, showChevron: false },
         { id: 'logout', icon: staticIconMap.logout, title: '退出登录', destructive: true, onPress: handleLogout },
       ],
     },

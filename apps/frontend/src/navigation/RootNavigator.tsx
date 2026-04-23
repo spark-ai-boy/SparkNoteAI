@@ -9,7 +9,7 @@ import * as Linking from 'expo-linking';
 import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
 import { RootStackParamList } from './types';
-import { useAuthStore } from '../stores';
+import { useAuthStore, useServerConfigStore } from '../stores';
 import { ThreeColumnLayout } from '../screens/web/WebLayoutScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -25,11 +25,22 @@ const usePageTitle = (title: string) => {
 
 export const RootNavigator: React.FC = () => {
   const { isAuthenticated, checkAuth, isLoading } = useAuthStore();
+  const { loadConfig } = useServerConfigStore();
   const [, forceUpdate] = useState(0);
   const navigationRef = useRef<any>(null);
+  const initialUrlHandled = useRef(false);
+  const authRef = useRef(isAuthenticated);
+  authRef.current = isAuthenticated;
 
   useEffect(() => {
-    checkAuth();
+    // 先加载服务器配置，再检查认证状态
+    const init = async () => {
+      if (Platform.OS !== 'web') {
+        await loadConfig();
+      }
+      checkAuth();
+    };
+    init();
   }, []);
 
   // 监听认证状态变化，触发重新渲染
@@ -39,7 +50,12 @@ export const RootNavigator: React.FC = () => {
 
   // 处理传入的 URL（来自系统分享）
   const handleIncomingUrl = (incomingUrl: string) => {
-    if (!navigationRef.current || !isAuthenticated) return;
+    if (!navigationRef.current || !authRef.current) return;
+
+    // 忽略 Metro dev server URL、app 自身启动 URL、以及后端 API 地址
+    if (incomingUrl.includes(':8081') || incomingUrl.includes(':8000') || incomingUrl.includes('://localhost')) {
+      return;
+    }
 
     // 提取 URL（支持 sparknoteai://import?url=xxx 格式，也支持直接传入的 http/https 链接）
     let shareUrl = incomingUrl;
@@ -63,25 +79,33 @@ export const RootNavigator: React.FC = () => {
     }, 100);
   };
 
-  // 监听来自系统分享的 URL
+  // 监听来自系统分享的 URL（整个生命周期只注册一次）
   useEffect(() => {
-    if (!isAuthenticated) return;
+    // 启动时仅处理一次初始 URL
+    if (!initialUrlHandled.current) {
+      initialUrlHandled.current = true;
+      Linking.getInitialURL().then((url) => {
+        if (url) {
+          // 等待认证完成后再处理
+          const waitForAuth = () => {
+            if (authRef.current && navigationRef.current) {
+              handleIncomingUrl(url);
+            } else {
+              setTimeout(waitForAuth, 200);
+            }
+          };
+          waitForAuth();
+        }
+      });
+    }
 
-    // 启动时检查初始 URL
-    Linking.getInitialURL().then((url) => {
-      if (url) {
-        // 延迟处理，确保导航树已就绪
-        setTimeout(() => handleIncomingUrl(url), 500);
-      }
-    });
-
-    // 监听运行时传入的 URL
+    // 运行时监听新 URL（整个生命周期只注册一次）
     const subscription = Linking.addEventListener('url', (event) => {
       handleIncomingUrl(event.url);
     });
 
     return () => subscription.remove();
-  }, [isAuthenticated]);
+  }, []);
 
   if (isLoading) {
     return null; // 可以添加启动屏
