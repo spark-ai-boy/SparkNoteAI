@@ -52,19 +52,17 @@ export const RootNavigator: React.FC = () => {
   const handleIncomingUrl = (incomingUrl: string) => {
     if (!navigationRef.current || !authRef.current) return;
 
-    // 忽略 Metro dev server URL、app 自身启动 URL、以及后端 API 地址
-    if (incomingUrl.includes(':8081') || incomingUrl.includes(':8000') || incomingUrl.includes('://localhost')) {
+    // 只处理 sparknoteai:// 自定义 scheme 的分享链接
+    // 忽略 dev server URL、浏览器 URL 等一切非分享链接
+    if (!incomingUrl.startsWith('sparknoteai://')) {
       return;
     }
 
-    // 提取 URL（支持 sparknoteai://import?url=xxx 格式，也支持直接传入的 http/https 链接）
-    let shareUrl = incomingUrl;
+    // 提取 URL 参数
+    let shareUrl = '';
     try {
       const parsed = new URL(incomingUrl);
-      // 如果是自定义 scheme，提取 url 参数
-      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
-        shareUrl = parsed.searchParams.get('url') || '';
-      }
+      shareUrl = parsed.searchParams.get('url') || '';
     } catch {
       return; // 无效 URL
     }
@@ -72,7 +70,6 @@ export const RootNavigator: React.FC = () => {
     if (!shareUrl) return;
 
     // 导航到导入页面并预填充 URL
-    // 移动端直接 navigate 到 Import（在 MobileNotesStackScreen 中）
     navigationRef.current.navigate('Main' as never);
     setTimeout(() => {
       navigationRef.current.navigate('Import' as never, { url: shareUrl });

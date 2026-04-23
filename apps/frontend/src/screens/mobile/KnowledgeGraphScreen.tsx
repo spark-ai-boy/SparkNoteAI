@@ -137,20 +137,18 @@ export const KnowledgeGraphScreen: React.FC = () => {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', paddingRight: 8 }}>
-          <Pressable
-            style={[{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, opacity: isFullBuildInProgress ? 0.6 : 1 }]}
-            onPress={handleBuildGraph}
-            disabled={isFullBuildInProgress}
-          >
-            <Text style={{ fontSize: 13, fontWeight: '500', color: colors.primary }}>
-              {isFullBuildInProgress ? '构建中' : (hasData ? '重新构建' : '构建')}
-            </Text>
-          </Pressable>
-        </View>
+        <Pressable
+          style={{ paddingHorizontal: 8, paddingVertical: 4, opacity: isFullBuildInProgress ? 0.5 : 1 }}
+          onPress={handleBuildGraph}
+          disabled={isFullBuildInProgress}
+        >
+          <Text style={{ fontSize: 17, fontWeight: '400', color: colors.primary }}>
+            {isFullBuildInProgress ? '构建中' : (hasData ? '重新构建' : '构建')}
+          </Text>
+        </Pressable>
       ),
     });
-  }, [navigation, colors.primary, colors.border, isFullBuildInProgress, hasData]);
+  }, [navigation, colors.primary, isFullBuildInProgress, hasData]);
 
   const handleBuildGraph = () => {
     if (isFullBuildInProgress) {

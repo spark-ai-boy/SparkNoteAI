@@ -23,6 +23,12 @@ interface Props {
 
 export const MobileKnowledgeGraphView: React.FC<Props> = ({ nodes, edges, onNodeClick }) => {
   const colors = useTheme();
+  const isDark = colors.background === '#000000' || colors.background === '#0a0a0a' || colors.background === '#1C1C1E';
+  const textColor = isDark ? '#E5E5EA' : '#1D1D1F';
+  const legendBg = isDark ? 'rgba(28,28,30,.92)' : 'rgba(255,255,255,.92)';
+  const legendTitleColor = isDark ? '#E5E5EA' : '#1D1D1F';
+  const legendTextColor = isDark ? '#8E8E93' : '#666';
+  const legendShadow = isDark ? '0 1px 4px rgba(0,0,0,.4)' : '0 1px 4px rgba(0,0,0,.08)';
 
   const colorMap: Record<string, string> = {};
   const labelMap: Record<string, string> = {};
@@ -76,12 +82,12 @@ export const MobileKnowledgeGraphView: React.FC<Props> = ({ nodes, edges, onNode
 html,body{width:100%;height:100%;overflow:hidden;background:transparent}
 svg{width:100%;height:100%;display:block}
 .link{stroke-opacity:.4}
-.node-label{font-size:9px;font-weight:600;fill:#1D1D1F;pointer-events:none;text-anchor:middle}
-.legend{position:absolute;bottom:12px;left:12px;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-radius:10px;padding:8px 12px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-.legend-title{font-size:11px;font-weight:600;color:#1D1D1F;margin-bottom:4px}
+.node-label{font-size:9px;font-weight:600;fill:${textColor};pointer-events:none;text-anchor:middle}
+.legend{position:absolute;bottom:12px;left:12px;background:${legendBg};backdrop-filter:blur(10px);border-radius:10px;padding:8px 12px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;box-shadow:${legendShadow}}
+.legend-title{font-size:11px;font-weight:600;color:${legendTitleColor};margin-bottom:4px}
 .legend-item{display:flex;align-items:center;gap:6px;margin-top:3px}
 .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.legend-text{font-size:11px;color:#666}
+.legend-text{font-size:11px;color:${legendTextColor}}
 #status{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#999;font-size:14px}
 </style>
 </head>
