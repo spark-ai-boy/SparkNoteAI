@@ -50,6 +50,7 @@
     "plugins": [
       "expo-secure-store",
       "./plugins/withCleartextTraffic",
+      "./plugins/withShareIntent",
       [
         "expo-image-picker",
         {

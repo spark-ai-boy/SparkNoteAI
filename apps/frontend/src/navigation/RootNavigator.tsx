@@ -52,19 +52,32 @@ export const RootNavigator: React.FC = () => {
   const handleIncomingUrl = (incomingUrl: string) => {
     if (!navigationRef.current || !authRef.current) return;
 
-    // 只处理 sparknoteai:// 自定义 scheme 的分享链接
-    // 忽略 dev server URL、浏览器 URL 等一切非分享链接
-    if (!incomingUrl.startsWith('sparknoteai://')) {
-      return;
-    }
-
-    // 提取 URL 参数
     let shareUrl = '';
-    try {
+
+    // 处理 sparknoteai:// 自定义 scheme 的分享链接
+    if (incomingUrl.startsWith('sparknoteai://')) {
+      try {
+        const parsed = new URL(incomingUrl);
+        shareUrl = parsed.searchParams.get('url') || '';
+      } catch {
+        return;
+      }
+    }
+    // 处理从其他应用分享过来的 HTTP/HTTPS URL
+    else if (incomingUrl.startsWith('http://') || incomingUrl.startsWith('https://')) {
+      // 过滤 dev server 和 API 地址
       const parsed = new URL(incomingUrl);
-      shareUrl = parsed.searchParams.get('url') || '';
-    } catch {
-      return; // 无效 URL
+      const isDev = (
+        parsed.hostname === 'localhost' ||
+        parsed.hostname === '127.0.0.1' ||
+        parsed.port === '8081' || // Expo Metro
+        parsed.port === '8000' || // 本地后端
+        parsed.hostname === '192.168.66.165'
+      );
+      if (isDev) return;
+      shareUrl = incomingUrl;
+    } else {
+      return; // 不处理的 URL
     }
 
     if (!shareUrl) return;
