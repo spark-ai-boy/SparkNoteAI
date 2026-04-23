@@ -49,6 +49,7 @@
     },
     "plugins": [
       "expo-secure-store",
+      "./plugins/withCleartextTraffic",
       [
         "expo-image-picker",
         {

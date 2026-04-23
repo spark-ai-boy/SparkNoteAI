@@ -84,6 +84,7 @@ interface ServerConfigState {
   loadConfig: () => Promise<void>;
   setBaseUrl: (url: string) => Promise<void>;
   testConnection: () => Promise<VersionCompatibility>;
+  testUrl: (url: string) => Promise<VersionCompatibility>;
   resetConfig: () => Promise<void>;
   clearError: () => void;
 }
@@ -188,27 +189,27 @@ export const useServerConfigStore = create<ServerConfigState>((set, get) => ({
   },
 
   testConnection: async () => {
-    const { baseUrl } = get();
+    return get().testUrl(get().baseUrl);
+  },
+
+  testUrl: async (url: string) => {
+    const normalizedUrl = url.replace(/\/$/, '');
     set({ isTesting: true, error: null });
 
     try {
-      // 创建临时 axios 实例进行测试
-      // baseUrl 已经是完整的服务器地址（如 http://localhost:8000），直接添加 /api 后缀
-      const apiBaseUrl = baseUrl.endsWith('/api') ? baseUrl : baseUrl + '/api';
+      const apiBaseUrl = normalizedUrl.endsWith('/api') ? normalizedUrl : normalizedUrl + '/api';
       const testClient = axios.create({
         baseURL: apiBaseUrl,
         timeout: 10000,
       });
 
-      // 测试连接并获取服务器信息
       const response = await testClient.get('/health');
 
       if (response.status !== 200) {
         throw new Error(`服务器返回状态码：${response.status}`);
       }
 
-      // 尝试获取版本信息（如果后端支持）
-      let serverVersion = CLIENT_VERSION; // 默认使用客户端版本
+      let serverVersion = CLIENT_VERSION;
       let compatibleClientVersions: string[] = [];
       try {
         const versionResponse = await testClient.get('/version', { timeout: 5000 });
@@ -222,7 +223,6 @@ export const useServerConfigStore = create<ServerConfigState>((set, get) => ({
         console.log('服务器未提供版本信息，使用默认版本');
       }
 
-      // 检查版本兼容性
       const compatibility = checkVersionCompatibility(CLIENT_VERSION, serverVersion);
 
       set({

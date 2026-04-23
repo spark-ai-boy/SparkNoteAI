@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -190,10 +191,15 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.mobileContent}>
+            <ScrollView
+              contentContainerStyle={styles.mobileScrollContent}
+              keyboardShouldPersistTaps="always"
+              showsVerticalScrollIndicator={false}
+            >
             {/* 品牌区域 */}
             <View style={styles.brandArea}>
-              <View style={[styles.logoCircle, { backgroundColor: colors.primary }]}>
-                <Text style={styles.logoEmoji}>✨</Text>
+              <View style={[styles.logoCircle, { backgroundColor: colors.backgroundSecondary }]}>
+                <Image source={require('../../../assets/icon.png')} style={styles.logoImage} />
               </View>
               <Text style={[styles.brandTitle, { color: colors.text }]}>SparkNoteAI</Text>
               <Text style={[styles.brandSubtitle, { color: colors.textSecondary }]}>
@@ -315,6 +321,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
             )}
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
 
@@ -835,7 +842,12 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
+  },
+  mobileScrollContent: {
     justifyContent: 'center',
+    flexGrow: 1,
+    paddingTop: spacing.md,
+    paddingBottom: spacing['3xl'],
   },
   brandArea: {
     alignItems: 'center',
@@ -843,12 +855,18 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   logoCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
+    overflow: 'hidden',
+  },
+  logoImage: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
   },
   logoEmoji: {
     fontSize: 28,

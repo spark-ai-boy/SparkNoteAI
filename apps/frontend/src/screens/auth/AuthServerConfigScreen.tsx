@@ -25,7 +25,7 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'ServerConfig'>;
 
 export const AuthServerConfigScreen: React.FC<Props> = ({ navigation }) => {
   const colors = useTheme();
-  const { baseUrl, isTesting, lastTestResult, compatibility, setBaseUrl, testConnection } = useServerConfigStore();
+  const { baseUrl, isTesting, lastTestResult, compatibility, setBaseUrl, testUrl } = useServerConfigStore();
   const [inputValue, setInputValue] = useState(baseUrl);
 
   useEffect(() => {
@@ -33,8 +33,7 @@ export const AuthServerConfigScreen: React.FC<Props> = ({ navigation }) => {
   }, [baseUrl]);
 
   const handleTest = async () => {
-    await setBaseUrl(inputValue);
-    await testConnection();
+    await testUrl(inputValue);
   };
 
   const handleSave = async () => {
