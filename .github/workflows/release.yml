@@ -254,6 +254,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Sync version to app.json
+        run: |
+          cd apps/frontend
+          jq ".expo.version = \"${{ needs.version.outputs.version }}\"" app.json > app.json.tmp && mv app.json.tmp app.json
+
       - name: Generate Android native project
         run: |
           cd apps/frontend
@@ -264,12 +269,16 @@ jobs:
           cd apps/frontend/android
           ./gradlew assembleRelease
 
-      - name: Find APK
+      - name: Find & rename APK
         id: apk_path
         run: |
-          APK=$(find apps/frontend/android/app/build/outputs/apk/release -name "*.apk" -not -name "*unaligned*" | head -1)
-          echo "apk=$APK" >> $GITHUB_OUTPUT
-          ls -la "$APK"
+          APK=$(find apps/frontend/android/app/build/outputs/apk/release -name "app-release.apk" -not -name "*unaligned*" | head -1)
+          VERSION=${{ needs.version.outputs.version }}
+          DIR=$(dirname "$APK")
+          NEW="${DIR}/SparkNoteAI-${VERSION}.apk"
+          mv "$APK" "$NEW"
+          echo "apk=$NEW" >> $GITHUB_OUTPUT
+          ls -la "$NEW"
 
       - name: Upload Android APK
         uses: softprops/action-gh-release@v2
