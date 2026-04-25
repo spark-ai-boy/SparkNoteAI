@@ -59,7 +59,7 @@ export const SettingsStack: React.FC = () => {
   <Stack.Navigator
     screenOptions={{
       headerTintColor: colors.primary,
-      headerTitleStyle: { fontSize: 17, fontWeight: '600' },
+      headerTitleStyle: { fontSize: 17, fontWeight: '600', color: colors.text },
       headerBackTitle: '返回',
       headerStyle: { backgroundColor: colors.background },
       animation: 'slide_from_right',

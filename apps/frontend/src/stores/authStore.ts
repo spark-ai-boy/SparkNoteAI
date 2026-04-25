@@ -9,7 +9,9 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isServerUnreachable: boolean;
   error: string | null;
+  errorType: 'network' | 'credential' | null;
   // 2FA 相关状态
   twoFactorRequired: boolean;
   twoFactorSecret: string | null;
@@ -21,6 +23,7 @@ interface AuthState {
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  retryConnection: () => Promise<void>;
   clearError: () => void;
   clear2FAState: () => void;
   updateUser: (data: { username?: string; email?: string }) => Promise<void>;
@@ -31,7 +34,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
+  isServerUnreachable: false,
   error: null,
+  errorType: null,
   twoFactorRequired: false,
   twoFactorSecret: null,
   tempToken: null,
@@ -57,19 +62,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const user = await authApi.getCurrentUser();
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (error: any) {
-      // 处理 422 验证错误
-      const errors = error.response?.data?.detail;
-      let message = '登录失败，请检查用户名和密码';
+      const isNetworkError = !error.response;
+      if (isNetworkError) {
+        set({
+          error: '无法连接到服务器，请检查网络或服务器状态',
+          errorType: 'network',
+          isLoading: false,
+        });
+      } else {
+        // 处理 422 验证错误
+        const errors = error.response?.data?.detail;
+        let message = '登录失败，请检查用户名和密码';
 
-      if (Array.isArray(errors)) {
-        message = errors.map((e: any) => e.msg).join('; ') || message;
-      } else if (typeof errors === 'string') {
-        message = errors;
-      } else if (error.response?.data?.message) {
-        message = error.response.data.message;
+        if (Array.isArray(errors)) {
+          message = errors.map((e: any) => e.msg).join('; ') || message;
+        } else if (typeof errors === 'string') {
+          message = errors;
+        } else if (error.response?.data?.message) {
+          message = error.response.data.message;
+        }
+
+        set({ error: message, errorType: 'credential', isLoading: false });
       }
-
-      set({ error: message, isLoading: false });
       throw error;
     }
   },
@@ -140,7 +154,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   checkAuth: async () => {
-    set({ isLoading: true });
+    set({ isLoading: true, isServerUnreachable: false });
     try {
       const token = await getAuthToken();
       if (token) {
@@ -149,13 +163,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       } else {
         set({ isAuthenticated: false, isLoading: false });
       }
-    } catch (error) {
-      set({ user: null, isAuthenticated: false, isLoading: false });
+    } catch (error: any) {
+      // 判断是否为网络错误（服务器不可达/超时）
+      const isNetworkError = !error.response;
+      if (isNetworkError) {
+        set({ isServerUnreachable: true, isLoading: false });
+      } else {
+        // Token 过期或无效（401 等），清除本地状态
+        set({ user: null, isAuthenticated: false, isLoading: false });
+      }
     }
   },
 
+  retryConnection: async () => {
+    await get().checkAuth();
+  },
+
   clearError: () => {
-    set({ error: null });
+    set({ error: null, errorType: null });
   },
 
   clear2FAState: () => {

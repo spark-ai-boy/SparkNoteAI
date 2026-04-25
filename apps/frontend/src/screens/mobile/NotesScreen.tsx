@@ -10,10 +10,11 @@ import {
   Text,
   TouchableOpacity,
   TextInput,
+  StatusBar,
 } from 'react-native';
 import { MenuView, type MenuAction } from '@react-native-menu/menu';
 
-import { spacing } from '../../theme';
+import { spacing, iosDarkColors } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
 import { PlusIcon, CloseIcon, BookIcon, SearchIcon } from '../../components/icons';
 import { NoteCard } from './components/NoteCard';
@@ -89,6 +90,8 @@ const menuActions: MenuAction[] = [
 export const NotesScreen: React.FC = () => {
   const navigation = useNavigation<NavProp>();
   const colors = useTheme();
+  const isDark = colors.background === iosDarkColors.background;
+  const statusBarStyle = isDark ? 'light-content' : 'dark-content';
   const toast = useToast();
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(false);
@@ -127,16 +130,22 @@ export const NotesScreen: React.FC = () => {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <MenuView
-          key={menuKey}
-          actions={menuActions}
-          onPressAction={handleMenuAction}
-          shouldOpenOnLongPress={false}
-        >
-          <View style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
-            <PlusIcon size={22} color={colors.primary} />
-          </View>
-        </MenuView>
+        <>
+          <StatusBar barStyle={statusBarStyle} animated={false} />
+          <MenuView
+            key={menuKey}
+            actions={menuActions}
+            onPressAction={handleMenuAction}
+            shouldOpenOnLongPress={false}
+            onCloseMenu={() => {
+              StatusBar.setBarStyle(statusBarStyle, false);
+            }}
+          >
+            <View style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
+              <PlusIcon size={22} color={colors.primary} />
+            </View>
+          </MenuView>
+        </>
       ),
     });
   }, [navigation, colors.primary, menuKey]);

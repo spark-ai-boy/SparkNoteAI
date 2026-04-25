@@ -19,7 +19,7 @@ import { MenuView, type MenuAction } from '@react-native-menu/menu';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { spacing } from '../../theme';
+import { spacing, iosDarkColors } from '../../theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useToastStore } from '../../stores/toastStore';
 import { useServerConfigStore } from '../../stores/serverConfigStore';
@@ -47,7 +47,11 @@ import {
   ImageIcon,
   MoreHorizontalIcon,
 } from '../../components/icons';
-import { View as RNView, Text as RNText } from 'react-native';
+import {
+  StatusBar,
+  View as RNView,
+  Text as RNText,
+} from 'react-native';
 import Markdown, { Renderer } from 'react-native-marked';
 
 type NoteDetailNavProp = NativeStackNavigationProp<{
@@ -73,6 +77,8 @@ export const NoteDetailScreen: React.FC = () => {
   const route = useRoute<any>();
   const { noteId } = route.params as { noteId: number };
   const colors = useTheme();
+  const isDark = colors.background === iosDarkColors.background;
+  const statusBarStyle = isDark ? 'light-content' : 'dark-content';
   const { baseUrl } = useServerConfigStore();
   const [note, setNote] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,9 +94,28 @@ export const NoteDetailScreen: React.FC = () => {
     if (nativeEvent.event === 'edit') {
       setMode('edit');
     } else if (nativeEvent.event === 'delete') {
-      handleDelete();
+      // 直接在这里处理，避免 stale closure
+      Alert.alert(
+        '删除笔记',
+        `确定要删除「${note?.title}」吗？此操作不可恢复。`,
+        [
+          { text: '取消', style: 'cancel' },
+          {
+            text: '删除',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await notesApi.deleteNote(noteId);
+                navigation.goBack();
+              } catch {
+                useToastStore.getState().showError('删除失败');
+              }
+            },
+          },
+        ],
+      );
     }
-  }, []);
+  }, [note, noteId, navigation]);
 
   const menuActions: MenuAction[] = useMemo(() => [
     { id: 'edit', title: '编辑', image: 'pencil', imageColor: '#666666' },
@@ -117,15 +142,21 @@ export const NoteDetailScreen: React.FC = () => {
     } else {
       navigation.setOptions({
         headerRight: () => (
-          <MenuView
-            actions={menuActions}
-            onPressAction={handleMenuAction}
-            shouldOpenOnLongPress={false}
-          >
-            <View style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
-              <MoreHorizontalIcon size={20} color={colors.primary} />
-            </View>
-          </MenuView>
+          <>
+            <StatusBar barStyle={statusBarStyle} animated={false} />
+            <MenuView
+              actions={menuActions}
+              onPressAction={handleMenuAction}
+              shouldOpenOnLongPress={false}
+              onCloseMenu={() => {
+                StatusBar.setBarStyle(statusBarStyle, false);
+              }}
+            >
+              <View style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
+                <MoreHorizontalIcon size={20} color={colors.primary} />
+              </View>
+            </MenuView>
+          </>
         ),
       });
     }
@@ -190,29 +221,6 @@ export const NoteDetailScreen: React.FC = () => {
     setMode('preview');
     setEditTitle(note?.title || '');
     setEditContent(note?.content || '');
-  };
-
-  const handleDelete = () => {
-    if (!note) return;
-    Alert.alert(
-      '删除笔记',
-      `确定要删除「${note.title}」吗？此操作不可恢复。`,
-      [
-        { text: '取消', style: 'cancel' },
-        {
-          text: '删除',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await notesApi.deleteNote(noteId);
-              navigation.goBack();
-            } catch {
-              useToastStore.getState().showError('删除失败');
-            }
-          },
-        },
-      ],
-    );
   };
 
   const formatDate = (iso: string) => {

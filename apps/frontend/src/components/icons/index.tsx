@@ -60,6 +60,8 @@ import {
   Type,
   Layout,
   Globe,
+  WifiOff,
+  Wifi,
   Sun,
   Moon,
   Monitor,
@@ -141,6 +143,8 @@ export { LogOut as LogOutIcon };
 export { Type as TypeIcon };
 export { Layout as LayoutIcon };
 export { Globe as GlobeIcon };
+export { WifiOff as WifiOffIcon };
+export { Wifi as WifiIcon };
 export { Sun as SunIcon };
 export { Moon as MoonIcon };
 export { Monitor as MonitorIcon };
