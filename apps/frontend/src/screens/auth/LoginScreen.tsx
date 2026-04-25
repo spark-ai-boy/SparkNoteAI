@@ -23,7 +23,8 @@ import { useWebTheme } from '../../hooks/useWebTheme';
 import { useAuthStore, useServerConfigStore } from '../../stores';
 import { AuthStackParamList } from '../../navigation/types';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
-import { SettingsIcon, WifiOffIcon, AlertTriangleIcon, CheckCircleIcon } from '../../components/icons';
+import { ServerConfigDialog } from '../../components/common/ServerConfigDialog';
+import { SettingsIcon, WifiOffIcon, AlertTriangleIcon, CheckCircleIcon, ServerIcon, ChevronRightIcon } from '../../components/icons';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -36,8 +37,8 @@ interface Props {
 
 // Web 端默认使用 localhost:8000，不显示服务器配置 UI
 const isElectron = typeof (globalThis as any).electronAPI !== 'undefined';
-const isWeb = Platform.OS === 'web' && !isElectron;
-const isMobile = !isWeb;
+const isPureWeb = Platform.OS === 'web' && !isElectron;
+const isMobile = Platform.OS !== 'web'; // 仅 iOS/Android，Electron 用 Web 布局
 
 export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const colors = useWebTheme();
@@ -46,6 +47,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showForgotPasswordPrompt, setShowForgotPasswordPrompt] = useState(false);
+  const [showServerConfig, setShowServerConfig] = useState(false);
   const [codeError, setCodeError] = useState('');
   const [loginAnimating, setLoginAnimating] = useState(false);
   const { login, loginWith2FA, isLoading, error, errorType, clearError, clear2FAState, twoFactorRequired, twoFactorSecret, isAuthenticated } = useAuthStore();
@@ -53,7 +55,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   // Web 端不需要加载服务器配置（默认 localhost:8000）
   React.useEffect(() => {
-    if (!isWeb) {
+    if (!isPureWeb) {
       loadConfig();
     }
   }, []);
@@ -442,15 +444,16 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   </Text>
                 </View>
 
-                {!isWeb && !twoFactorRequired && (
+                {!isPureWeb && !twoFactorRequired && (
                   <TouchableOpacity
                     style={[styles.serverConfigButton, { backgroundColor: colors.backgroundSecondary }]}
-                    onPress={() => navigation.navigate('ServerConfig')}
+                    onPress={() => setShowServerConfig(true)}
                   >
-                    <SettingsIcon size={16} color={colors.textSecondary} />
+                    <ServerIcon size={16} color={colors.textSecondary} />
                     <Text style={[styles.serverConfigText, { color: colors.textSecondary }]}>
                       服务器：{baseUrl}
                     </Text>
+                    <ChevronRightIcon size={16} color={colors.textSecondary} />
                   </TouchableOpacity>
                 )}
 
@@ -607,6 +610,11 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
         cancelText=""
         onConfirm={() => setShowForgotPasswordPrompt(false)}
         onCancel={() => setShowForgotPasswordPrompt(false)}
+      />
+
+      <ServerConfigDialog
+        visible={showServerConfig}
+        onClose={() => setShowServerConfig(false)}
       />
     </SafeAreaView>
   );
