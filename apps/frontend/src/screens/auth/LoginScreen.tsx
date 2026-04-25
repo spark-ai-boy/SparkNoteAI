@@ -23,7 +23,8 @@ import { useWebTheme } from '../../hooks/useWebTheme';
 import { useAuthStore, useServerConfigStore } from '../../stores';
 import { AuthStackParamList } from '../../navigation/types';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
-import { SettingsIcon, AlertTriangleIcon, CheckCircleIcon } from '../../components/icons';
+import { ServerConfigDialog } from '../../components/common/ServerConfigDialog';
+import { SettingsIcon, WifiOffIcon, AlertTriangleIcon, CheckCircleIcon, ServerIcon, ChevronRightIcon } from '../../components/icons';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -36,8 +37,8 @@ interface Props {
 
 // Web 端默认使用 localhost:8000，不显示服务器配置 UI
 const isElectron = typeof (globalThis as any).electronAPI !== 'undefined';
-const isWeb = Platform.OS === 'web' && !isElectron;
-const isMobile = !isWeb;
+const isPureWeb = Platform.OS === 'web' && !isElectron;
+const isMobile = Platform.OS !== 'web'; // 仅 iOS/Android，Electron 用 Web 布局
 
 export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const colors = useWebTheme();
@@ -46,14 +47,15 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showForgotPasswordPrompt, setShowForgotPasswordPrompt] = useState(false);
+  const [showServerConfig, setShowServerConfig] = useState(false);
   const [codeError, setCodeError] = useState('');
   const [loginAnimating, setLoginAnimating] = useState(false);
-  const { login, loginWith2FA, isLoading, error, clearError, clear2FAState, twoFactorRequired, twoFactorSecret, isAuthenticated } = useAuthStore();
+  const { login, loginWith2FA, isLoading, error, errorType, clearError, clear2FAState, twoFactorRequired, twoFactorSecret, isAuthenticated } = useAuthStore();
   const { baseUrl, hasConfigured, loadConfig } = useServerConfigStore();
 
   // Web 端不需要加载服务器配置（默认 localhost:8000）
   React.useEffect(() => {
-    if (!isWeb) {
+    if (!isPureWeb) {
       loadConfig();
     }
   }, []);
@@ -191,11 +193,6 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.mobileContent}>
-            <ScrollView
-              contentContainerStyle={styles.mobileScrollContent}
-              keyboardShouldPersistTaps="always"
-              showsVerticalScrollIndicator={false}
-            >
             {/* 品牌区域 */}
             <View style={styles.brandArea}>
               <View style={[styles.logoCircle, { backgroundColor: colors.backgroundSecondary }]}>
@@ -225,8 +222,13 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             )}
 
-            {/* 2FA 验证模式 */}
+            {/* 2FA 验证模式 - 使用 ScrollView 处理键盘 */}
             {twoFactorRequired ? (
+              <ScrollView
+                contentContainerStyle={styles.formScrollContent}
+                keyboardShouldPersistTaps="always"
+                showsVerticalScrollIndicator={false}
+              >
               <View style={styles.formArea}>
                 <View style={[styles.twoFactorInfoBox, { backgroundColor: colors.primary + '10' }]}>
                   <Text style={[styles.twoFactorInfoText, { color: colors.text }]}>
@@ -257,8 +259,9 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   <Text style={[styles.cancel2FAText, { color: colors.text }]}>返回</Text>
                 </TouchableOpacity>
               </View>
+              </ScrollView>
             ) : (
-              /* 普通登录模式 */
+              /* 普通登录模式 - 不使用滚动视图 */
               <View style={styles.formArea}>
                 <Input
                   label="用户名"
@@ -279,8 +282,37 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 />
 
                 {error && (
-                  <View style={[styles.errorContainer, { backgroundColor: colors.error + '10' }]}>
-                    <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+                  <View style={[
+                    styles.errorContainer,
+                    {
+                      backgroundColor: errorType === 'network' ? (colors.warning + '10') : (colors.error + '10'),
+                      borderLeftColor: errorType === 'network' ? colors.warning : colors.error,
+                    },
+                  ]}>
+                    <View style={styles.errorContent}>
+                      {errorType === 'network' ? (
+                        <WifiOffIcon size={18} color={colors.warning} />
+                      ) : (
+                        <AlertTriangleIcon size={18} color={colors.error} />
+                      )}
+                      <Text style={[
+                        styles.errorText,
+                        { color: errorType === 'network' ? colors.warning : colors.error },
+                      ]}>
+                        {error}
+                      </Text>
+                    </View>
+                    {errorType === 'network' && (
+                      <TouchableOpacity
+                        style={[styles.retryButton, { backgroundColor: colors.warning }]}
+                        onPress={() => {
+                          clearError();
+                          handleLogin();
+                        }}
+                      >
+                        <Text style={styles.retryButtonText}>重试</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )}
 
@@ -291,37 +323,33 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   <Text style={[styles.forgotPasswordText, { color: colors.textSecondary }]}>忘记密码？</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[
-                    styles.loginButton,
-                    { backgroundColor: colors.primary },
-                    (!hasConfigured || isLoading) && styles.loginButtonDisabled,
-                  ]}
-                  onPress={handleLogin}
-                  disabled={!hasConfigured || isLoading}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator color="#ffffff" />
-                  ) : (
-                    <Text style={[styles.loginButtonText, { color: '#ffffff' }]}>登 录</Text>
-                  )}
-                </TouchableOpacity>
+                {/* 登录和注册按钮并排 */}
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.loginButton,
+                      { backgroundColor: colors.primary, flex: 1 },
+                      (!hasConfigured || isLoading) && styles.loginButtonDisabled,
+                    ]}
+                    onPress={handleLogin}
+                    disabled={!hasConfigured || isLoading}
+                  >
+                    {isLoading ? (
+                      <ActivityIndicator color="#ffffff" />
+                    ) : (
+                      <Text style={[styles.loginButtonText, { color: '#ffffff' }]}>登 录</Text>
+                    )}
+                  </TouchableOpacity>
 
-                <View style={styles.divider}>
-                  <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-                  <Text style={[styles.dividerText, { color: colors.textSecondary }]}>或</Text>
-                  <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+                  <TouchableOpacity
+                    style={[styles.registerButton, { backgroundColor: colors.backgroundSecondary }]}
+                    onPress={() => navigation.navigate('Register')}
+                  >
+                    <Text style={[styles.registerButtonText, { color: colors.text }]}>注 册</Text>
+                  </TouchableOpacity>
                 </View>
-
-                <TouchableOpacity
-                  style={[styles.registerButton, { backgroundColor: colors.backgroundSecondary }]}
-                  onPress={() => navigation.navigate('Register')}
-                >
-                  <Text style={[styles.registerButtonText, { color: colors.text }]}>创建新账号</Text>
-                </TouchableOpacity>
               </View>
             )}
-            </ScrollView>
           </View>
         </KeyboardAvoidingView>
 
@@ -416,15 +444,16 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   </Text>
                 </View>
 
-                {!isWeb && !twoFactorRequired && (
+                {!isPureWeb && !twoFactorRequired && (
                   <TouchableOpacity
                     style={[styles.serverConfigButton, { backgroundColor: colors.backgroundSecondary }]}
-                    onPress={() => navigation.navigate('ServerConfig')}
+                    onPress={() => setShowServerConfig(true)}
                   >
-                    <SettingsIcon size={16} color={colors.textSecondary} />
+                    <ServerIcon size={16} color={colors.textSecondary} />
                     <Text style={[styles.serverConfigText, { color: colors.textSecondary }]}>
                       服务器：{baseUrl}
                     </Text>
+                    <ChevronRightIcon size={16} color={colors.textSecondary} />
                   </TouchableOpacity>
                 )}
 
@@ -483,8 +512,37 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   )}
 
                   {error && (
-                    <View style={styles.errorContainer}>
-                      <Text style={styles.errorText}>{error}</Text>
+                    <View style={[
+                      styles.errorContainer,
+                      {
+                        backgroundColor: errorType === 'network' ? (colors.warning + '10') : (colors.error + '10'),
+                        borderLeftColor: errorType === 'network' ? colors.warning : colors.error,
+                      },
+                    ]}>
+                      <View style={styles.errorContent}>
+                        {errorType === 'network' ? (
+                          <WifiOffIcon size={18} color={colors.warning} />
+                        ) : (
+                          <AlertTriangleIcon size={18} color={colors.error} />
+                        )}
+                        <Text style={[
+                          styles.errorText,
+                          { color: errorType === 'network' ? colors.warning : colors.error },
+                        ]}>
+                          {error}
+                        </Text>
+                      </View>
+                      {errorType === 'network' && (
+                        <TouchableOpacity
+                          style={[styles.retryButton, { backgroundColor: colors.warning }]}
+                          onPress={() => {
+                            clearError();
+                            handleLogin();
+                          }}
+                        >
+                          <Text style={styles.retryButtonText}>重试</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   )}
                 </View>
@@ -552,6 +610,11 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
         cancelText=""
         onConfirm={() => setShowForgotPasswordPrompt(false)}
         onCancel={() => setShowForgotPasswordPrompt(false)}
+      />
+
+      <ServerConfigDialog
+        visible={showServerConfig}
+        onClose={() => setShowServerConfig(false)}
       />
     </SafeAreaView>
   );
@@ -734,6 +797,24 @@ const styles = StyleSheet.create({
   errorText: {
     ...typography.body,
     fontSize: 14,
+    flex: 1,
+  },
+  errorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  retryButton: {
+    alignSelf: 'flex-end',
+    borderRadius: 6,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.sm,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
   },
   forgotPassword: {
     alignSelf: 'flex-end',
@@ -778,12 +859,6 @@ const styles = StyleSheet.create({
     ...typography.caption,
     marginHorizontal: spacing.md,
     fontSize: 12,
-  },
-  registerButton: {
-    borderRadius: 12,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   registerButtonText: {
     ...typography.body,
@@ -843,11 +918,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
   },
-  mobileScrollContent: {
-    justifyContent: 'center',
+  formScrollContent: {
     flexGrow: 1,
     paddingTop: spacing.md,
     paddingBottom: spacing['3xl'],
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  registerButton: {
+    borderRadius: 12,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
   },
   brandArea: {
     alignItems: 'center',

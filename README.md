@@ -26,12 +26,23 @@
   <a target="_blank" href="https://spark-ai-boy.github.io/docs/intro">文档</a> &nbsp;
 </p>
 
+<p align="center">
+  <img src="./images/production.png" />
+</p>
 
 # 👋 项目介绍
 
 > 知语拾光 · 让知识如光般照亮你的世界 ⭐️
 
 **SparkNoteAI** 是一个现代化的知识整理与管理系统，融合了大模型智能总结、知识图谱可视化和多平台内容采集能力。帮助你从碎片化信息中构建结构化知识体系。
+
+# ⭐️ 最新进展
+
+- [2026-04-24] 🔥 v1.0.2 发布支持手机端（android、ios）了，其中 ios 需要自己编译
+- [2026-04-12] v1.0.0 发布，支持本地部署，web 前端、桌面前端
+- [2026-04-03] 项目启动了
+
+---
 
 # 🚀 功能特点
 

@@ -68,7 +68,7 @@ export const MobileNotesStackScreen: React.FC = () => {
     <MobileNotesStack.Navigator
       screenOptions={{
         headerTintColor: colors.primary,
-        headerTitleStyle: { fontSize: 17, fontWeight: '600' },
+        headerTitleStyle: { fontSize: 17, fontWeight: '600', color: colors.text },
         animation: 'slide_from_right',
         headerBackTitleVisible: false,
       } as any}

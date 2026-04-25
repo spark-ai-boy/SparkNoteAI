@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Platform, View } from 'react-native';
+import { Platform, View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import * as Linking from 'expo-linking';
 
 import { AuthNavigator } from './AuthNavigator';
@@ -11,6 +11,7 @@ import { MainNavigator } from './MainNavigator';
 import { RootStackParamList } from './types';
 import { useAuthStore, useServerConfigStore } from '../stores';
 import { ThreeColumnLayout } from '../screens/web/WebLayoutScreen';
+import ServerUnreachableScreen from '../screens/auth/ServerUnreachableScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -24,7 +25,7 @@ const usePageTitle = (title: string) => {
 };
 
 export const RootNavigator: React.FC = () => {
-  const { isAuthenticated, checkAuth, isLoading } = useAuthStore();
+  const { isAuthenticated, isServerUnreachable, checkAuth, isLoading } = useAuthStore();
   const { loadConfig } = useServerConfigStore();
   const [, forceUpdate] = useState(0);
   const navigationRef = useRef<any>(null);
@@ -38,7 +39,7 @@ export const RootNavigator: React.FC = () => {
       if (Platform.OS !== 'web') {
         await loadConfig();
       }
-      checkAuth();
+      checkAuth(); // fire-and-forget，状态变化通过 Zustand 响应
     };
     init();
   }, []);
@@ -118,7 +119,18 @@ export const RootNavigator: React.FC = () => {
   }, []);
 
   if (isLoading) {
-    return null; // 可以添加启动屏
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>SparkNoteAI</Text>
+        <ActivityIndicator size="large" color="#4F46E5" />
+        <Text style={styles.loadingSubtext}>正在连接服务器...</Text>
+      </View>
+    );
+  }
+
+  // 服务器不可达时显示错误界面
+  if (isServerUnreachable) {
+    return <ServerUnreachableScreen />;
   }
 
   // Web 端使用三栏布局
@@ -154,5 +166,25 @@ export const RootNavigator: React.FC = () => {
     </NavigationContainer>
   );
 };
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#4F46E5',
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginTop: 8,
+  },
+});
 
 export default RootNavigator;

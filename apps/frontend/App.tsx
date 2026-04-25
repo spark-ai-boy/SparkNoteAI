@@ -1,8 +1,7 @@
 // 应用入口
 
 import React, { useEffect } from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { Platform, useColorScheme } from 'react-native';
+import { StatusBar, Platform, useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { RootNavigator } from './src/navigation';
@@ -178,10 +177,23 @@ export default function App() {
   useWebStyles();
   useThemeStyles();
 
+  // 根据主题自动切换状态栏文字颜色
+  const systemColorScheme = useColorScheme();
+  const theme = useInterfaceSettingsStore((state) => state.theme);
+  const isDark = theme === 'dark' || (theme === 'system' && systemColorScheme === 'dark');
+  const statusBarBg = isDark ? darkColors.background : lightColors.background;
+
   return (
     <SafeAreaProvider>
       {/* Web 端不需要 StatusBar */}
-      {Platform.OS !== 'web' && <StatusBar style="light" />}
+      {Platform.OS !== 'web' && (
+        <StatusBar
+          barStyle={isDark ? 'light-content' : 'dark-content'}
+          backgroundColor={statusBarBg}
+          translucent={false}
+          animated={false}
+        />
+      )}
       <RootNavigator />
       <ToastContainer />
     </SafeAreaProvider>
