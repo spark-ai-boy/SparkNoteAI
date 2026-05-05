@@ -110,6 +110,7 @@ cd SparkNoteAI
 ```bash
 cd docker
 cp .env.example .env
+cp docker-compose.prod.yml docker-compose.yml
 ```
 
 编辑 `.env`，修改以下必填项：
